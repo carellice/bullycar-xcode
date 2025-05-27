@@ -33,24 +33,7 @@ struct SettingsView: View {
                                in: 1...30)
                     }
                 }
-                
-                // Sezione iCloud
-                Section(header: Text("iCloud")) {
-                    HStack {
-                        Image(systemName: "icloud.fill")
-                            .foregroundColor(.blue)
-                        VStack(alignment: .leading) {
-                            Text("Sincronizzazione iCloud")
-                                .font(.body)
-                            Text("Attiva se configurato")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                    }
-                }
+
                 
                 // Sezione backup
                 Section(header: Text("Backup locale")) {
