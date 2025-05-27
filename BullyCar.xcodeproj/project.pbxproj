@@ -1,0 +1,615 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		900EB5C32DE52C1700A7EA08 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 900EB5AD2DE52C1600A7EA08 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 900EB5B42DE52C1600A7EA08;
+			remoteInfo = BullyCar;
+		};
+		900EB5CD2DE52C1700A7EA08 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 900EB5AD2DE52C1600A7EA08 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 900EB5B42DE52C1600A7EA08;
+			remoteInfo = BullyCar;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		900EB5B52DE52C1600A7EA08 /* BullyCar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BullyCar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		900EB5C22DE52C1700A7EA08 /* BullyCarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BullyCarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		900EB5CC2DE52C1700A7EA08 /* BullyCarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BullyCarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9014A0852DE5F9F100F227AB /* Exceptions for "BullyCar" folder in "BullyCar" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 900EB5B42DE52C1600A7EA08 /* BullyCar */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		900EB5B72DE52C1600A7EA08 /* BullyCar */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9014A0852DE5F9F100F227AB /* Exceptions for "BullyCar" folder in "BullyCar" target */,
+			);
+			path = BullyCar;
+			sourceTree = "<group>";
+		};
+		900EB5C52DE52C1700A7EA08 /* BullyCarTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BullyCarTests;
+			sourceTree = "<group>";
+		};
+		900EB5CF2DE52C1700A7EA08 /* BullyCarUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BullyCarUITests;
+			sourceTree = "<group>";
+		};
+		900EB5DF2DE52C5800A7EA08 /* Models */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Models;
+			sourceTree = "<group>";
+		};
+		900EB5E02DE52C6100A7EA08 /* Views */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Views;
+			sourceTree = "<group>";
+		};
+		900EB5E12DE52C6900A7EA08 /* ViewModels */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		900EB5E22DE52C7100A7EA08 /* Utilities */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		900EB5E32DE52C7900A7EA08 /* Resources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		900EB5B22DE52C1600A7EA08 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		900EB5BF2DE52C1700A7EA08 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		900EB5C92DE52C1700A7EA08 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		900EB5AC2DE52C1600A7EA08 = {
+			isa = PBXGroup;
+			children = (
+				900EB5E32DE52C7900A7EA08 /* Resources */,
+				900EB5E22DE52C7100A7EA08 /* Utilities */,
+				900EB5E12DE52C6900A7EA08 /* ViewModels */,
+				900EB5E02DE52C6100A7EA08 /* Views */,
+				900EB5DF2DE52C5800A7EA08 /* Models */,
+				900EB5B72DE52C1600A7EA08 /* BullyCar */,
+				900EB5C52DE52C1700A7EA08 /* BullyCarTests */,
+				900EB5CF2DE52C1700A7EA08 /* BullyCarUITests */,
+				900EB5B62DE52C1600A7EA08 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		900EB5B62DE52C1600A7EA08 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				900EB5B52DE52C1600A7EA08 /* BullyCar.app */,
+				900EB5C22DE52C1700A7EA08 /* BullyCarTests.xctest */,
+				900EB5CC2DE52C1700A7EA08 /* BullyCarUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		900EB5B42DE52C1600A7EA08 /* BullyCar */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 900EB5D62DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCar" */;
+			buildPhases = (
+				900EB5B12DE52C1600A7EA08 /* Sources */,
+				900EB5B22DE52C1600A7EA08 /* Frameworks */,
+				900EB5B32DE52C1600A7EA08 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				900EB5B72DE52C1600A7EA08 /* BullyCar */,
+				900EB5DF2DE52C5800A7EA08 /* Models */,
+				900EB5E02DE52C6100A7EA08 /* Views */,
+				900EB5E12DE52C6900A7EA08 /* ViewModels */,
+				900EB5E22DE52C7100A7EA08 /* Utilities */,
+				900EB5E32DE52C7900A7EA08 /* Resources */,
+			);
+			name = BullyCar;
+			packageProductDependencies = (
+			);
+			productName = BullyCar;
+			productReference = 900EB5B52DE52C1600A7EA08 /* BullyCar.app */;
+			productType = "com.apple.product-type.application";
+		};
+		900EB5C12DE52C1700A7EA08 /* BullyCarTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 900EB5D92DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCarTests" */;
+			buildPhases = (
+				900EB5BE2DE52C1700A7EA08 /* Sources */,
+				900EB5BF2DE52C1700A7EA08 /* Frameworks */,
+				900EB5C02DE52C1700A7EA08 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				900EB5C42DE52C1700A7EA08 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				900EB5C52DE52C1700A7EA08 /* BullyCarTests */,
+			);
+			name = BullyCarTests;
+			packageProductDependencies = (
+			);
+			productName = BullyCarTests;
+			productReference = 900EB5C22DE52C1700A7EA08 /* BullyCarTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		900EB5CB2DE52C1700A7EA08 /* BullyCarUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 900EB5DC2DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCarUITests" */;
+			buildPhases = (
+				900EB5C82DE52C1700A7EA08 /* Sources */,
+				900EB5C92DE52C1700A7EA08 /* Frameworks */,
+				900EB5CA2DE52C1700A7EA08 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				900EB5CE2DE52C1700A7EA08 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				900EB5CF2DE52C1700A7EA08 /* BullyCarUITests */,
+			);
+			name = BullyCarUITests;
+			packageProductDependencies = (
+			);
+			productName = BullyCarUITests;
+			productReference = 900EB5CC2DE52C1700A7EA08 /* BullyCarUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		900EB5AD2DE52C1600A7EA08 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1630;
+				LastUpgradeCheck = 1630;
+				TargetAttributes = {
+					900EB5B42DE52C1600A7EA08 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					900EB5C12DE52C1700A7EA08 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = 900EB5B42DE52C1600A7EA08;
+					};
+					900EB5CB2DE52C1700A7EA08 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = 900EB5B42DE52C1600A7EA08;
+					};
+				};
+			};
+			buildConfigurationList = 900EB5B02DE52C1600A7EA08 /* Build configuration list for PBXProject "BullyCar" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 900EB5AC2DE52C1600A7EA08;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 900EB5B62DE52C1600A7EA08 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				900EB5B42DE52C1600A7EA08 /* BullyCar */,
+				900EB5C12DE52C1700A7EA08 /* BullyCarTests */,
+				900EB5CB2DE52C1700A7EA08 /* BullyCarUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		900EB5B32DE52C1600A7EA08 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		900EB5C02DE52C1700A7EA08 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		900EB5CA2DE52C1700A7EA08 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		900EB5B12DE52C1600A7EA08 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		900EB5BE2DE52C1700A7EA08 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		900EB5C82DE52C1700A7EA08 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		900EB5C42DE52C1700A7EA08 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 900EB5B42DE52C1600A7EA08 /* BullyCar */;
+			targetProxy = 900EB5C32DE52C1700A7EA08 /* PBXContainerItemProxy */;
+		};
+		900EB5CE2DE52C1700A7EA08 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 900EB5B42DE52C1600A7EA08 /* BullyCar */;
+			targetProxy = 900EB5CD2DE52C1700A7EA08 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		900EB5D42DE52C1700A7EA08 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		900EB5D52DE52C1700A7EA08 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		900EB5D72DE52C1700A7EA08 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BullyCar/BullyCar.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 579CS4F45Y;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BullyCar/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "BullyCar utilizza la fotocamera per scattare foto delle tue auto";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "BullyCar salva le foto dei documenti nella tua libreria";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BullyCar accede alla libreria foto per selezionare immagini delle tue auto";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.carellice.BullyCar;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		900EB5D82DE52C1700A7EA08 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BullyCar/BullyCar.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 579CS4F45Y;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BullyCar/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "BullyCar utilizza la fotocamera per scattare foto delle tue auto";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "BullyCar salva le foto dei documenti nella tua libreria";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BullyCar accede alla libreria foto per selezionare immagini delle tue auto";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.carellice.BullyCar;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		900EB5DA2DE52C1700A7EA08 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.carellice.BullyCarTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BullyCar.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BullyCar";
+			};
+			name = Debug;
+		};
+		900EB5DB2DE52C1700A7EA08 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.carellice.BullyCarTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BullyCar.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BullyCar";
+			};
+			name = Release;
+		};
+		900EB5DD2DE52C1700A7EA08 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.carellice.BullyCarUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BullyCar;
+			};
+			name = Debug;
+		};
+		900EB5DE2DE52C1700A7EA08 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.carellice.BullyCarUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BullyCar;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		900EB5B02DE52C1600A7EA08 /* Build configuration list for PBXProject "BullyCar" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900EB5D42DE52C1700A7EA08 /* Debug */,
+				900EB5D52DE52C1700A7EA08 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		900EB5D62DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCar" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900EB5D72DE52C1700A7EA08 /* Debug */,
+				900EB5D82DE52C1700A7EA08 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		900EB5D92DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCarTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900EB5DA2DE52C1700A7EA08 /* Debug */,
+				900EB5DB2DE52C1700A7EA08 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		900EB5DC2DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCarUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900EB5DD2DE52C1700A7EA08 /* Debug */,
+				900EB5DE2DE52C1700A7EA08 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 900EB5AD2DE52C1600A7EA08 /* Project object */;
+}
