@@ -20,9 +20,14 @@ struct AddCarView: View {
     @State private var showingImagePicker = false
     @State private var imageSourceType: UIImagePickerController.SourceType = .photoLibrary
     @State private var showingActionSheet = false
+    @State private var isSaving = false // Aggiunto per evitare doppi tap
     
     var isEditing: Bool {
         carToEdit != nil
+    }
+    
+    var canSave: Bool {
+        !name.isEmpty && !brand.isEmpty && !plate.isEmpty && !isSaving
     }
     
     var body: some View {
@@ -59,6 +64,7 @@ struct AddCarView: View {
                             }
                         }
                         .buttonStyle(.borderedProminent)
+                        .disabled(isSaving)
                     }
                     .padding(.vertical)
                 }
@@ -66,27 +72,34 @@ struct AddCarView: View {
                 // Informazioni base
                 Section(header: Text("Informazioni auto")) {
                     TextField("Nome auto", text: $name)
+                        .disabled(isSaving)
                     TextField("Marca", text: $brand)
+                        .disabled(isSaving)
                     TextField("Modello", text: $model)
+                        .disabled(isSaving)
                     
                     Picker("Anno", selection: $year) {
                         ForEach((1900...Calendar.current.component(.year, from: Date())), id: \.self) { year in
                             Text(String(year)).tag(year)
                         }
                     }
+                    .disabled(isSaving)
                 }
                 
                 // Dettagli
                 Section(header: Text("Dettagli")) {
                     TextField("Targa", text: $plate)
                         .textCase(.uppercase)
+                        .disabled(isSaving)
                     
                     DatePicker("Data immatricolazione",
                              selection: $registrationDate,
                              displayedComponents: [.date])
+                        .disabled(isSaving)
                     
                     TextField("Chilometraggio", text: $mileage)
                         .keyboardType(.numberPad)
+                        .disabled(isSaving)
                 }
             }
             .navigationTitle(isEditing ? "Modifica auto" : "Nuova auto")
@@ -96,13 +109,14 @@ struct AddCarView: View {
                     Button("Annulla") {
                         dismiss()
                     }
+                    .disabled(isSaving)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Salva") {
+                    Button(isSaving ? "Salvataggio..." : "Salva") {
                         saveCar()
                     }
-                    .disabled(name.isEmpty || brand.isEmpty || plate.isEmpty)
+                    .disabled(!canSave)
                 }
             }
         }
@@ -143,6 +157,9 @@ struct AddCarView: View {
     }
     
     private func saveCar() {
+        guard !isSaving else { return }
+        isSaving = true
+        
         withAnimation {
             let car: Car
             
@@ -154,24 +171,47 @@ struct AddCarView: View {
                 car.addDate = Date()
             }
             
-            car.name = name
-            car.brand = brand
-            car.model = model
+            car.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            car.brand = brand.trimmingCharacters(in: .whitespacesAndNewlines)
+            car.model = model.trimmingCharacters(in: .whitespacesAndNewlines)
             car.year = Int32(year)
-            car.plate = plate.uppercased()
+            car.plate = plate.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
             car.registrationDate = registrationDate
             car.mileage = Int32(mileage) ?? 0
             
             if let image = selectedImage {
                 // Comprimi l'immagine per CloudKit (max 1MB per record)
-                car.imageData = image.jpegData(compressionQuality: 0.5)
+                car.imageData = image.jpegData(compressionQuality: 0.7)
             }
             
             do {
                 try viewContext.save()
-                dismiss()
+                print("✅ Auto salvata con successo")
+                
+                // Notifica il cambiamento dei dati
+                NotificationCenter.default.post(name: NSNotification.Name("CarDataChanged"), object: nil)
+                
+                // Chiudi la vista
+                DispatchQueue.main.async {
+                    dismiss()
+                }
+                
             } catch {
-                print("Errore nel salvataggio: \(error)")
+                print("❌ Errore nel salvataggio: \(error)")
+                isSaving = false
+                
+                // Mostra errore all'utente tramite ErrorManager
+                DispatchQueue.main.async {
+                    if let nsError = error as NSError? {
+                        ErrorManager.shared.showError(
+                            "Errore di salvataggio",
+                            message: "Impossibile salvare l'auto: \(nsError.localizedDescription)",
+                            type: .coreData
+                        )
+                        print("❌ Dettagli errore: \(nsError.localizedDescription)")
+                        print("❌ UserInfo: \(nsError.userInfo)")
+                    }
+                }
             }
         }
     }

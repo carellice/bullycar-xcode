@@ -34,8 +34,8 @@ struct SettingsView: View {
                     }
                 }
                 
-                // Sezione backup
-                Section(header: Text("Backup locale")) {
+                // Sezione backup locale
+                Section(header: Text("Backup Locale")) {
                     Button(action: { showingExportSheet = true }) {
                         Label("Esporta dati", systemImage: "square.and.arrow.up")
                     }
@@ -43,6 +43,10 @@ struct SettingsView: View {
                     Button(action: { showingImportSheet = true }) {
                         Label("Importa dati", systemImage: "square.and.arrow.down")
                     }
+                    
+                    Text("I backup includono tutte le auto, manutenzioni, documenti e promemoria")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
                 // Sezione info app
@@ -60,9 +64,6 @@ struct SettingsView: View {
                         Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
                             .foregroundColor(.secondary)
                     }
-                    
-                    // Test CloudKit - RIMUOVI IN PRODUZIONE
-                    NavigationLink("Test CloudKit", destination: CloudKitTestView())
                 }
                 
                 // Sezione pericolosa
@@ -116,31 +117,87 @@ struct SettingsView: View {
 // Vista per esportare documenti
 struct DocumentExporter: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var isExporting = false
+    @State private var showingShareSheet = false
+    @State private var exportedData: Data?
+    @State private var errorMessage: String?
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Image(systemName: "doc.badge.arrow.up")
-                    .font(.system(size: 60))
+            VStack(spacing: 30) {
+                Image(systemName: "square.and.arrow.up.circle.fill")
+                    .font(.system(size: 80))
                     .foregroundColor(.blue)
                 
-                Text("Esportazione dati")
-                    .font(.title2)
+                Text("Esporta Backup")
+                    .font(.title)
                     .fontWeight(.bold)
                 
-                Text("Questa funzionalità sarà disponibile prossimamente")
-                    .foregroundColor(.secondary)
+                Text("Crea un backup completo di tutti i tuoi dati:\n• Auto\n• Manutenzioni\n• Documenti\n• Promemoria\n• Note")
                     .multilineTextAlignment(.center)
-                    .padding()
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
                 
-                Button("Chiudi") {
-                    dismiss()
+                if isExporting {
+                    ProgressView("Preparazione backup...")
+                        .padding()
+                } else {
+                    Button(action: exportData) {
+                        Label("Esporta Backup", systemImage: "doc.badge.arrow.up")
+                            .font(.headline)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                    }
+                    .padding(.horizontal)
                 }
-                .buttonStyle(.borderedProminent)
+                
+                if let error = errorMessage {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                        .padding()
+                }
+                
+                Spacer()
             }
             .padding()
             .navigationTitle("Esporta")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Chiudi") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            if let data = exportedData {
+                ShareSheet(items: [
+                    BackupManager.generateBackupFileName(),
+                    data
+                ])
+            }
+        }
+    }
+    
+    private func exportData() {
+        isExporting = true
+        errorMessage = nil
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            do {
+                exportedData = try BackupManager.exportData(from: viewContext)
+                isExporting = false
+                showingShareSheet = true
+            } catch {
+                isExporting = false
+                errorMessage = "Errore esportazione: \(error.localizedDescription)"
+            }
         }
     }
 }
@@ -148,31 +205,120 @@ struct DocumentExporter: View {
 // Vista per importare documenti
 struct DocumentImporter: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var showingFilePicker = false
+    @State private var isImporting = false
+    @State private var successMessage: String?
+    @State private var errorMessage: String?
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Image(systemName: "doc.badge.arrow.up.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.blue)
+            VStack(spacing: 30) {
+                Image(systemName: "square.and.arrow.down.circle.fill")
+                    .font(.system(size: 80))
+                    .foregroundColor(.green)
                 
-                Text("Importazione dati")
-                    .font(.title2)
+                Text("Importa Backup")
+                    .font(.title)
                     .fontWeight(.bold)
                 
-                Text("Questa funzionalità sarà disponibile prossimamente")
-                    .foregroundColor(.secondary)
+                Text("Seleziona un file di backup BullyCar (.json) per ripristinare i tuoi dati")
                     .multilineTextAlignment(.center)
-                    .padding()
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
                 
-                Button("Chiudi") {
-                    dismiss()
+                if isImporting {
+                    ProgressView("Importazione in corso...")
+                        .padding()
+                } else {
+                    Button(action: { showingFilePicker = true }) {
+                        Label("Seleziona Backup", systemImage: "doc.badge.arrow.down")
+                            .font(.headline)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                    }
+                    .padding(.horizontal)
                 }
-                .buttonStyle(.borderedProminent)
+                
+                if let success = successMessage {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text(success)
+                            .foregroundColor(.green)
+                    }
+                    .padding()
+                }
+                
+                if let error = errorMessage {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                        .padding()
+                }
+                
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("Nota importante:", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .font(.headline)
+                    
+                    Text("L'importazione aggiungerà i dati del backup a quelli esistenti. Se vuoi sostituire completamente i dati, elimina prima quelli attuali dalle impostazioni.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                
+                Spacer()
             }
             .padding()
             .navigationTitle("Importa")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Chiudi") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingFilePicker) {
+            DocumentPicker { url in
+                importData(from: url)
+            }
+        }
+    }
+    
+    private func importData(from url: URL) {
+        isImporting = true
+        errorMessage = nil
+        successMessage = nil
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let data = try Data(contentsOf: url)
+                try BackupManager.importData(data, to: viewContext)
+                
+                DispatchQueue.main.async {
+                    isImporting = false
+                    successMessage = "Backup importato con successo!"
+                    
+                    // Chiudi dopo 2 secondi
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        dismiss()
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    isImporting = false
+                    errorMessage = "Errore importazione: \(error.localizedDescription)"
+                }
+            }
         }
     }
 }

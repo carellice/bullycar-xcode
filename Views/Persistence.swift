@@ -30,31 +30,14 @@ struct PersistenceController {
         return result
     }()
 
-    let container: NSPersistentCloudKitContainer
+    let container: NSPersistentContainer
 
     init(inMemory: Bool = false) {
-        // Usa NSPersistentCloudKitContainer invece di NSPersistentContainer
-        container = NSPersistentCloudKitContainer(name: "BullyCar")
+        // Usa NSPersistentContainer normale (senza CloudKit)
+        container = NSPersistentContainer(name: "BullyCar")
         
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
-        } else {
-            // Configura per CloudKit
-            container.persistentStoreDescriptions.forEach { storeDescription in
-                // Abilita la sincronizzazione remota
-                storeDescription.setOption(true as NSNumber,
-                                         forKey: NSPersistentHistoryTrackingKey)
-                storeDescription.setOption(true as NSNumber,
-                                         forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
-                
-                // Configura CloudKit
-                storeDescription.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
-                    containerIdentifier: "iCloud.com.tuonome.BullyCar" // SOSTITUISCI con il tuo ID
-                )
-                
-                // Log per debug
-                print("🔵 CloudKit Container ID: \(storeDescription.cloudKitContainerOptions?.containerIdentifier ?? "none")")
-            }
         }
         
         container.loadPersistentStores { (storeDescription, error) in
@@ -62,33 +45,10 @@ struct PersistenceController {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
             
-            print("🔵 Core Data store loaded successfully")
-            print("🔵 Store URL: \(storeDescription.url?.absoluteString ?? "unknown")")
-            print("🔵 Store Type: \(storeDescription.type)")
-            
-            // Verifica se CloudKit è attivo
-            if let cloudKitContainerOptions = storeDescription.cloudKitContainerOptions {
-                print("✅ CloudKit container: \(cloudKitContainerOptions.containerIdentifier)")
-                
-                // Determina l'ambiente
-                #if DEBUG
-                print("📱 CloudKit Environment: Development (Debug build)")
-                #else
-                print("📱 CloudKit Environment: Production (Release build)")
-                #endif
-            } else {
-                print("⚠️ CloudKit NOT configured")
-            }
+            print("✅ Core Data caricato (solo locale)")
         }
         
         container.viewContext.automaticallyMergesChangesFromParent = true
-        
-        // Configura per sincronizzazione CloudKit
-        do {
-            try container.viewContext.setQueryGenerationFrom(.current)
-        } catch {
-            print("Errore impostazione query generation: \(error)")
-        }
     }
     
     // Funzione per salvare il contesto
@@ -98,16 +58,10 @@ struct PersistenceController {
         if context.hasChanges {
             do {
                 try context.save()
-                print("✅ Salvataggio completato")
+                print("✅ Dati salvati localmente")
             } catch {
                 let nsError = error as NSError
                 print("❌ Errore salvataggio: \(nsError)")
-                print("❌ Dettagli: \(nsError.userInfo)")
-                
-                // Non fare crash in produzione, mostra errore all'utente
-                if let reason = nsError.userInfo["reason"] as? String {
-                    print("❌ Motivo: \(reason)")
-                }
             }
         }
     }
@@ -123,8 +77,9 @@ struct PersistenceController {
             do {
                 try container.viewContext.execute(deleteRequest)
                 try container.viewContext.save()
+                print("✅ Tutti i dati eliminati")
             } catch {
-                print("Errore eliminazione dati: \(error)")
+                print("❌ Errore eliminazione dati: \(error)")
             }
         }
     }

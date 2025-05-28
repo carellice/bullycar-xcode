@@ -12,7 +12,7 @@ struct HomeView: View {
     
     @State private var showingAddCar = false
     @State private var showingSettings = false
-    @State private var refreshID = UUID() // Per forzare refresh
+    @State private var refreshID = UUID()
     
     var body: some View {
         NavigationView {
@@ -22,10 +22,27 @@ struct HomeView: View {
                     .ignoresSafeArea()
                 
                 if cars.isEmpty {
-                    EmptyStateView()
+                    ScrollView {
+                        EmptyStateView()
+                            .padding(.top, 100)
+                    }
+                    .refreshable {
+                        await refreshData()
+                    }
                 } else {
-                    CarListView(cars: Array(cars))
-                        .id(refreshID) // Forza refresh quando cambia
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 160))], spacing: 16) {
+                            ForEach(cars) { car in
+                                NavigationLink(destination: CarDetailView(car: car)) {
+                                    CarCardView(car: car)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .padding()
+                        .id(refreshID)
+                    }
+                }
                 }
             }
             .navigationTitle("BullyCar")
@@ -51,15 +68,14 @@ struct HomeView: View {
                     .environmentObject(themeManager)
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CarDataChanged"))) { _ in
-                // Forza il refresh quando i dati cambiano
                 refreshID = UUID()
             }
         }
         .onAppear {
-            // Aggiorna quando la vista appare
             viewContext.refreshAllObjects()
         }
     }
+}
 }
 
 // Vista per stato vuoto
