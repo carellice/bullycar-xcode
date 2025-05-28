@@ -18,11 +18,55 @@ struct SettingsView: View {
             Form {
                 // Sezione aspetto
                 Section(header: Text("Aspetto")) {
-                    Toggle("Tema scuro", isOn: $themeManager.isDarkMode)
-                        .onChange(of: themeManager.isDarkMode) { _ in
-                            // Forza il refresh della vista
-                            refreshID = UUID()
+                    // Menu a tendina per la selezione del tema
+                    HStack {
+                        Image(systemName: "paintbrush.fill")
+                            .foregroundColor(.blue)
+                            .frame(width: 24, height: 24)
+                        
+                        Text("Tema")
+                            .font(.body)
+                        
+                        Spacer()
+                        
+                        Menu {
+                            ForEach(ThemeManager.ThemeMode.allCases, id: \.self) { mode in
+                                Button(action: {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        themeManager.themeMode = mode
+                                    }
+                                    refreshID = UUID()
+                                }) {
+                                    HStack {
+                                        Image(systemName: mode.systemImage)
+                                        Text(mode.displayName)
+                                        
+                                        if themeManager.themeMode == mode {
+                                            Spacer()
+                                            Image(systemName: "checkmark")
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: themeManager.themeMode.systemImage)
+                                    .foregroundColor(.secondary)
+                                Text(themeManager.themeMode.displayName)
+                                    .foregroundColor(.secondary)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .foregroundColor(.secondary)
+                                    .font(.caption)
+                            }
                         }
+                    }
+                    
+                    // Descrizione della modalità selezionata
+                    Text(getThemeDescription(themeManager.themeMode))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 32)
                 }
                 
                 // Sezione notifiche
@@ -87,7 +131,7 @@ struct SettingsView: View {
             }
             .id(refreshID)
         }
-        .preferredColorScheme(themeManager.isDarkMode ? .dark : .light)
+        .preferredColorScheme(themeManager.colorScheme)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .alert("Cancella tutti i dati", isPresented: $showingDeleteAlert) {
@@ -101,12 +145,12 @@ struct SettingsView: View {
         .sheet(isPresented: $showingExportSheet) {
             DocumentExporter()
                 .environmentObject(themeManager)
-                .preferredColorScheme(themeManager.isDarkMode ? .dark : .light)
+                .preferredColorScheme(themeManager.colorScheme)
         }
         .sheet(isPresented: $showingImportSheet) {
             DocumentImporter()
                 .environmentObject(themeManager)
-                .preferredColorScheme(themeManager.isDarkMode ? .dark : .light)
+                .preferredColorScheme(themeManager.colorScheme)
         }
     }
     
@@ -149,6 +193,17 @@ struct SettingsView: View {
                 message: "Impossibile eliminare tutti i dati: \(error.localizedDescription)",
                 type: .coreData
             )
+        }
+    }
+    
+    private func getThemeDescription(_ mode: ThemeManager.ThemeMode) -> String {
+        switch mode {
+        case .light:
+            return "L'app userà sempre il tema chiaro"
+        case .dark:
+            return "L'app userà sempre il tema scuro"
+        case .automatic:
+            return "L'app seguirà le impostazioni del dispositivo"
         }
     }
 }

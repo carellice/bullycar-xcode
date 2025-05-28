@@ -15,19 +15,78 @@ struct BullyCarApp: App {
     }
 }
 
-// Gestore del tema
+// Gestore del tema con supporto automatico
 class ThemeManager: ObservableObject {
-    @Published var isDarkMode: Bool {
+    enum ThemeMode: String, CaseIterable {
+        case light = "light"
+        case dark = "dark"
+        case automatic = "automatic"
+        
+        var displayName: String {
+            switch self {
+            case .light:
+                return "Chiaro"
+            case .dark:
+                return "Scuro"
+            case .automatic:
+                return "Automatico"
+            }
+        }
+        
+        var systemImage: String {
+            switch self {
+            case .light:
+                return "sun.max.fill"
+            case .dark:
+                return "moon.fill"
+            case .automatic:
+                return "circle.lefthalf.filled"
+            }
+        }
+    }
+    
+    @Published var themeMode: ThemeMode {
         didSet {
-            UserDefaults.standard.set(isDarkMode, forKey: "isDarkMode")
+            UserDefaults.standard.set(themeMode.rawValue, forKey: "themeMode")
+            print("🎨 Tema cambiato a: \(themeMode.displayName)")
         }
     }
     
     var colorScheme: ColorScheme? {
-        return isDarkMode ? .dark : .light
+        switch themeMode {
+        case .light:
+            return .light
+        case .dark:
+            return .dark
+        case .automatic:
+            return nil // nil significa che segue il sistema
+        }
+    }
+    
+    // Proprietà di compatibilità per il vecchio sistema
+    var isDarkMode: Bool {
+        get {
+            switch themeMode {
+            case .dark:
+                return true
+            case .light:
+                return false
+            case .automatic:
+                // In modalità automatica, controlla le impostazioni del sistema
+                return UITraitCollection.current.userInterfaceStyle == .dark
+            }
+        }
+        set {
+            // Per compatibilità con il vecchio toggle
+            themeMode = newValue ? .dark : .light
+        }
     }
     
     init() {
-        self.isDarkMode = UserDefaults.standard.bool(forKey: "isDarkMode")
+        // Carica il tema salvato, con default automatico
+        let savedTheme = UserDefaults.standard.string(forKey: "themeMode") ?? ThemeMode.automatic.rawValue
+        self.themeMode = ThemeMode(rawValue: savedTheme) ?? .automatic
+        
+        print("🎨 Tema inizializzato: \(themeMode.displayName)")
     }
 }
