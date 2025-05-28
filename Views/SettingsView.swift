@@ -1,7 +1,9 @@
 import SwiftUI
+import CoreData
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("enableNotifications") private var enableNotifications = true
@@ -9,7 +11,7 @@ struct SettingsView: View {
     @State private var showingDeleteAlert = false
     @State private var showingExportSheet = false
     @State private var showingImportSheet = false
-    @State private var refreshID = UUID() // Aggiunto per forzare il refresh
+    @State private var refreshID = UUID()
     
     var body: some View {
         NavigationView {
@@ -83,9 +85,9 @@ struct SettingsView: View {
                     }
                 }
             }
-            .id(refreshID) // Forza il refresh quando cambia l'ID
+            .id(refreshID)
         }
-        .preferredColorScheme(themeManager.isDarkMode ? .dark : .light) // Forza lo schema colori
+        .preferredColorScheme(themeManager.isDarkMode ? .dark : .light)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .alert("Cancella tutti i dati", isPresented: $showingDeleteAlert) {
@@ -109,9 +111,80 @@ struct SettingsView: View {
     }
     
     private func deleteAllData() {
-        PersistenceController.shared.deleteAllData()
-        dismiss()
+        print("🗑️ Iniziando eliminazione di tutti i dati...")
+        
+        do {
+            // Metodo più diretto: fetch e delete individualmente
+            let carRequest: NSFetchRequest<Car> = Car.fetchRequest()
+            let cars = try viewContext.fetch(carRequest)
+            
+            for car in cars {
+                viewContext.delete(car)
+            }
+            
+            // Salva le modifiche
+            try viewContext.save()
+            print("✅ Tutti i dati eliminati dal database")
+            
+            // Reset completo del contesto
+            viewContext.reset()
+            print("✅ Contesto resettato")
+            
+            // Invia notifica
+            NotificationCenter.default.post(
+                name: NSNotification.Name("CarDataChanged"),
+                object: nil
+            )
+            print("📡 Notifica inviata")
+            
+            // Chiudi dopo un breve momento per permettere il refresh
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                dismiss()
+            }
+            
+        } catch {
+            print("❌ Errore eliminazione: \(error)")
+            ErrorManager.shared.showError(
+                "Errore eliminazione",
+                message: "Impossibile eliminare tutti i dati: \(error.localizedDescription)",
+                type: .coreData
+            )
+        }
     }
+}
+
+// ShareSheet specializzato per i backup
+struct BackupShareSheet: UIViewControllerRepresentable {
+    let data: Data
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        // Crea un file temporaneo con nome appropriato
+        let fileName = BackupManager.generateBackupFileName()
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        
+        do {
+            try data.write(to: tempURL)
+            print("✅ File backup creato: \(tempURL)")
+            
+            let controller = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
+            
+            // Su iPad, configura il popover
+            if let popover = controller.popoverPresentationController {
+                popover.sourceView = UIView()
+                popover.sourceRect = CGRect(x: UIScreen.main.bounds.midX, y: UIScreen.main.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            
+            return controller
+        } catch {
+            print("❌ Errore creazione file backup: \(error)")
+            // Fallback: condividi i dati raw
+            let controller = UIActivityViewController(activityItems: [data], applicationActivities: nil)
+            return controller
+        }
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // Vista per esportare documenti
@@ -177,10 +250,7 @@ struct DocumentExporter: View {
         }
         .sheet(isPresented: $showingShareSheet) {
             if let data = exportedData {
-                ShareSheet(items: [
-                    BackupManager.generateBackupFileName(),
-                    data
-                ])
+                BackupShareSheet(data: data)
             }
         }
     }
@@ -307,6 +377,12 @@ struct DocumentImporter: View {
                 DispatchQueue.main.async {
                     isImporting = false
                     successMessage = "Backup importato con successo!"
+                    
+                    // Invia notifica per aggiornare la HomeView
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("CarDataChanged"),
+                        object: nil
+                    )
                     
                     // Chiudi dopo 2 secondi
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {

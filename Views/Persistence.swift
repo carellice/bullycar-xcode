@@ -33,21 +33,41 @@ struct PersistenceController {
     let container: NSPersistentContainer
 
     init(inMemory: Bool = false) {
-        // Usa NSPersistentContainer normale (senza CloudKit)
         container = NSPersistentContainer(name: "BullyCar")
         
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+        } else {
+            // Configurazione corretta per risolvere il problema di Persistent History
+            guard let description = container.persistentStoreDescriptions.first else {
+                fatalError("Failed to retrieve a persistent store description.")
+            }
+            
+            // Abilita la cronologia persistente
+            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+            
+            // Opzioni aggiuntive per la stabilità
+            description.shouldInferMappingModelAutomatically = true
+            description.shouldMigrateStoreAutomatically = true
         }
         
         container.loadPersistentStores { (storeDescription, error) in
             if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
+                print("⚠️ Errore caricamento Core Data: \(error)")
+                print("💡 Prova a resettare il simulatore o eliminare l'app")
+                fatalError("Core Data error: \(error), \(error.userInfo)")
             }
-            
-            print("✅ Core Data caricato (solo locale)")
+            print("✅ Core Data caricato correttamente")
         }
         
+        // Configurazione del contesto
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        
+        // Configurazione per la gestione degli errori di concorrenza
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        
+        // Abilita la notifica automatica delle modifiche remote
         container.viewContext.automaticallyMergesChangesFromParent = true
     }
     

@@ -4,9 +4,19 @@ import PhotosUI
 struct AddCarView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) var presentationMode
     
     // Car da modificare (nil se nuova)
     var carToEdit: Car?
+    
+    // Callback per notificare il salvataggio
+    var onSave: (() -> Void)?
+    
+    // Inizializzatore personalizzato
+    init(carToEdit: Car? = nil, onSave: (() -> Void)? = nil) {
+        self.carToEdit = carToEdit
+        self.onSave = onSave
+    }
     
     // Stati del form
     @State private var name = ""
@@ -20,7 +30,7 @@ struct AddCarView: View {
     @State private var showingImagePicker = false
     @State private var imageSourceType: UIImagePickerController.SourceType = .photoLibrary
     @State private var showingActionSheet = false
-    @State private var isSaving = false // Aggiunto per evitare doppi tap
+    @State private var isSaving = false
     
     var isEditing: Bool {
         carToEdit != nil
@@ -158,60 +168,53 @@ struct AddCarView: View {
     
     private func saveCar() {
         guard !isSaving else { return }
+        
+        // Debug: stampa lo stato prima del salvataggio
+        print("🔄 Iniziando salvataggio auto...")
         isSaving = true
         
-        withAnimation {
-            let car: Car
+        let car: Car
+        
+        if let carToEdit = carToEdit {
+            car = carToEdit
+        } else {
+            car = Car(context: viewContext)
+            car.id = UUID()
+            car.addDate = Date()
+        }
+        
+        car.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        car.brand = brand.trimmingCharacters(in: .whitespacesAndNewlines)
+        car.model = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        car.year = Int32(year)
+        car.plate = plate.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        car.registrationDate = registrationDate
+        car.mileage = Int32(mileage) ?? 0
+        
+        if let image = selectedImage {
+            car.imageData = image.jpegData(compressionQuality: 0.7)
+        }
+        
+        do {
+            try viewContext.save()
+            print("✅ Auto salvata con successo - tentativo di chiusura...")
             
-            if let carToEdit = carToEdit {
-                car = carToEdit
-            } else {
-                car = Car(context: viewContext)
-                car.id = UUID()
-                car.addDate = Date()
+            // Chiusura diretta e immediata
+            DispatchQueue.main.async {
+                self.dismiss()
+                print("✅ Dismiss chiamato")
             }
             
-            car.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
-            car.brand = brand.trimmingCharacters(in: .whitespacesAndNewlines)
-            car.model = model.trimmingCharacters(in: .whitespacesAndNewlines)
-            car.year = Int32(year)
-            car.plate = plate.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
-            car.registrationDate = registrationDate
-            car.mileage = Int32(mileage) ?? 0
+        } catch {
+            print("❌ Errore nel salvataggio: \(error)")
+            isSaving = false
             
-            if let image = selectedImage {
-                // Comprimi l'immagine per CloudKit (max 1MB per record)
-                car.imageData = image.jpegData(compressionQuality: 0.7)
-            }
-            
-            do {
-                try viewContext.save()
-                print("✅ Auto salvata con successo")
-                
-                // Notifica il cambiamento dei dati
-                NotificationCenter.default.post(name: NSNotification.Name("CarDataChanged"), object: nil)
-                
-                // Chiudi la vista
-                DispatchQueue.main.async {
-                    dismiss()
-                }
-                
-            } catch {
-                print("❌ Errore nel salvataggio: \(error)")
-                isSaving = false
-                
-                // Mostra errore all'utente tramite ErrorManager
-                DispatchQueue.main.async {
-                    if let nsError = error as NSError? {
-                        ErrorManager.shared.showError(
-                            "Errore di salvataggio",
-                            message: "Impossibile salvare l'auto: \(nsError.localizedDescription)",
-                            type: .coreData
-                        )
-                        print("❌ Dettagli errore: \(nsError.localizedDescription)")
-                        print("❌ UserInfo: \(nsError.userInfo)")
-                    }
-                }
+            if let nsError = error as NSError? {
+                ErrorManager.shared.showError(
+                    "Errore di salvataggio",
+                    message: "Impossibile salvare l'auto: \(nsError.localizedDescription)",
+                    type: .coreData
+                )
             }
         }
     }

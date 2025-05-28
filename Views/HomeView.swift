@@ -13,6 +13,7 @@ struct HomeView: View {
     @State private var showingAddCar = false
     @State private var showingSettings = false
     @State private var refreshID = UUID()
+    @State private var forceRefresh = false // Nuovo stato per forzare il refresh
     
     var body: some View {
         NavigationView {
@@ -42,7 +43,9 @@ struct HomeView: View {
                         .padding()
                         .id(refreshID)
                     }
-                }
+                    .refreshable {
+                        await refreshData()
+                    }
                 }
             }
             .navigationTitle("BullyCar")
@@ -61,21 +64,69 @@ struct HomeView: View {
                 }
             }
             .sheet(isPresented: $showingAddCar) {
-                AddCarView()
+                AddCarView(onSave: {
+                    print("🏠 Callback onSave ricevuta - chiudendo sheet...")
+                    showingAddCar = false
+                    
+                    // Forza il refresh della vista dopo la chiusura
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        refreshID = UUID()
+                        print("🏠 HomeView refreshed")
+                    }
+                })
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
                     .environmentObject(themeManager)
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CarDataChanged"))) { _ in
-                refreshID = UUID()
+                print("📡 Ricevuta notifica CarDataChanged - forzando refresh completo")
+                Task { @MainActor in
+                    // Refresh molto più aggressivo
+                    viewContext.reset()
+                    
+                    // Forza il re-fetch dei dati
+                    let request: NSFetchRequest<Car> = Car.fetchRequest()
+                    request.sortDescriptors = [NSSortDescriptor(keyPath: \Car.name, ascending: true)]
+                    
+                    do {
+                        _ = try viewContext.fetch(request)
+                        print("✅ Dati re-fetchati con successo")
+                    } catch {
+                        print("❌ Errore nel re-fetch: \(error)")
+                    }
+                    
+                    refreshID = UUID()
+                    forceRefresh.toggle()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                print("📱 App diventata attiva - refresh")
+                Task { @MainActor in
+                    refreshID = UUID()
+                    viewContext.refreshAllObjects()
+                }
             }
         }
         .onAppear {
+            print("🏠 HomeView appeared")
             viewContext.refreshAllObjects()
         }
+        .id(forceRefresh) // Usa il nuovo stato per forzare il re-render
     }
-}
+    
+    // Funzione per il refresh dei dati
+    @MainActor
+    private func refreshData() async {
+        // Aggiorna il contesto Core Data
+        viewContext.refreshAllObjects()
+        
+        // Aggiorna l'ID per forzare il refresh della vista
+        refreshID = UUID()
+        
+        // Piccola pausa per dare feedback visivo
+        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 secondi
+    }
 }
 
 // Vista per stato vuoto
@@ -119,7 +170,7 @@ struct CarListView: View {
 
 // Card per singola auto
 struct CarCardView: View {
-    @ObservedObject var car: Car // Cambiato da let a @ObservedObject
+    @ObservedObject var car: Car
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
