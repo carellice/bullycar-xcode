@@ -47,14 +47,37 @@ struct PersistenceController {
                 storeDescription.setOption(true as NSNumber,
                                          forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
                 
-                // Opzionale: puoi configurare il container CloudKit
-                // storeDescription.cloudKitContainerOptions?.databaseScope = .public // o .private
+                // Configura CloudKit
+                storeDescription.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+                    containerIdentifier: "iCloud.com.tuonome.BullyCar" // SOSTITUISCI con il tuo ID
+                )
+                
+                // Log per debug
+                print("🔵 CloudKit Container ID: \(storeDescription.cloudKitContainerOptions?.containerIdentifier ?? "none")")
             }
         }
         
         container.loadPersistentStores { (storeDescription, error) in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
+            }
+            
+            print("🔵 Core Data store loaded successfully")
+            print("🔵 Store URL: \(storeDescription.url?.absoluteString ?? "unknown")")
+            print("🔵 Store Type: \(storeDescription.type)")
+            
+            // Verifica se CloudKit è attivo
+            if let cloudKitContainerOptions = storeDescription.cloudKitContainerOptions {
+                print("✅ CloudKit container: \(cloudKitContainerOptions.containerIdentifier)")
+                
+                // Determina l'ambiente
+                #if DEBUG
+                print("📱 CloudKit Environment: Development (Debug build)")
+                #else
+                print("📱 CloudKit Environment: Production (Release build)")
+                #endif
+            } else {
+                print("⚠️ CloudKit NOT configured")
             }
         }
         
@@ -75,9 +98,16 @@ struct PersistenceController {
         if context.hasChanges {
             do {
                 try context.save()
+                print("✅ Salvataggio completato")
             } catch {
                 let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+                print("❌ Errore salvataggio: \(nsError)")
+                print("❌ Dettagli: \(nsError.userInfo)")
+                
+                // Non fare crash in produzione, mostra errore all'utente
+                if let reason = nsError.userInfo["reason"] as? String {
+                    print("❌ Motivo: \(reason)")
+                }
             }
         }
     }

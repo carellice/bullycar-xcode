@@ -33,7 +33,6 @@ struct SettingsView: View {
                                in: 1...30)
                     }
                 }
-
                 
                 // Sezione backup
                 Section(header: Text("Backup locale")) {
@@ -61,6 +60,9 @@ struct SettingsView: View {
                         Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
                             .foregroundColor(.secondary)
                     }
+                    
+                    // Test CloudKit - RIMUOVI IN PRODUZIONE
+                    NavigationLink("Test CloudKit", destination: CloudKitTestView())
                 }
                 
                 // Sezione pericolosa
