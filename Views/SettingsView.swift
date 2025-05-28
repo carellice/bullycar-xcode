@@ -35,7 +35,7 @@ struct SettingsView: View {
                                     withAnimation(.easeInOut(duration: 0.3)) {
                                         themeManager.themeMode = mode
                                     }
-                                    refreshID = UUID()
+                                    // Il refresh ora avviene automaticamente tramite onReceive
                                 }) {
                                     HStack {
                                         Image(systemName: mode.systemImage)
@@ -134,6 +134,12 @@ struct SettingsView: View {
         .preferredColorScheme(themeManager.colorScheme)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .onReceive(themeManager.$themeMode) { _ in
+            // Forza il refresh della vista quando cambia il tema
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                refreshID = UUID()
+            }
+        }
         .alert("Cancella tutti i dati", isPresented: $showingDeleteAlert) {
             Button("Annulla", role: .cancel) { }
             Button("Cancella", role: .destructive) {
