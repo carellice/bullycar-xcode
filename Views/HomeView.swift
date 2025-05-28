@@ -12,6 +12,7 @@ struct HomeView: View {
     
     @State private var showingAddCar = false
     @State private var showingSettings = false
+    @State private var refreshID = UUID() // Per forzare refresh
     
     var body: some View {
         NavigationView {
@@ -24,6 +25,7 @@ struct HomeView: View {
                     EmptyStateView()
                 } else {
                     CarListView(cars: Array(cars))
+                        .id(refreshID) // Forza refresh quando cambia
                 }
             }
             .navigationTitle("BullyCar")
@@ -48,6 +50,14 @@ struct HomeView: View {
                 SettingsView()
                     .environmentObject(themeManager)
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CarDataChanged"))) { _ in
+                // Forza il refresh quando i dati cambiano
+                refreshID = UUID()
+            }
+        }
+        .onAppear {
+            // Aggiorna quando la vista appare
+            viewContext.refreshAllObjects()
         }
     }
 }
@@ -93,7 +103,7 @@ struct CarListView: View {
 
 // Card per singola auto
 struct CarCardView: View {
-    let car: Car
+    @ObservedObject var car: Car // Cambiato da let a @ObservedObject
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
