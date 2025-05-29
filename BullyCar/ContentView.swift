@@ -73,7 +73,7 @@ struct SplashView: View {
                         .fontWeight(.bold)
                         .opacity(opacity)
                     
-                    Text("La tua auto, sotto controllo")
+                    Text("Le tue auto, sotto controllo")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .opacity(opacity * 0.8)
