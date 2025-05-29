@@ -106,6 +106,7 @@ struct AddCarView: View {
                              selection: $registrationDate,
                              displayedComponents: [.date])
                         .disabled(isSaving)
+                        .environment(\.locale, Locale(identifier: "it_IT")) // Forza italiano
                     
                     TextField("Chilometraggio", text: $mileage)
                         .keyboardType(.numberPad)

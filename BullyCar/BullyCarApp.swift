@@ -11,6 +11,7 @@ struct BullyCarApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(themeManager)
                 .preferredColorScheme(themeManager.colorScheme)
+                .environment(\.locale, Locale(identifier: "it_IT")) // Forza italiano globalmente
         }
     }
 }

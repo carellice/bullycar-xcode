@@ -67,6 +67,7 @@ struct AddMaintenanceView: View {
                 // Dettagli intervento
                 Section(header: Text("Dettagli")) {
                     DatePicker("Data intervento", selection: $date, displayedComponents: [.date])
+                        .environment(\.locale, Locale(identifier: "it_IT")) // Forza italiano
                     
                     HStack {
                         Text("Chilometraggio")
@@ -111,6 +112,7 @@ struct AddMaintenanceView: View {
                                      selection: $reminderDate,
                                      in: Date()...,
                                      displayedComponents: [.date])
+                                .environment(\.locale, Locale(identifier: "it_IT")) // Forza italiano
                         }
                         
                         if reminderType == "interval" {
@@ -163,6 +165,7 @@ struct AddMaintenanceView: View {
                 }
             }
         }
+        .environment(\.locale, Locale.current) // Localizzazione per tutta la vista
         .onAppear {
             setupInitialData()
         }

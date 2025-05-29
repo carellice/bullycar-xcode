@@ -108,6 +108,7 @@ struct HomeView: View {
                 }
             }
         }
+        .environment(\.locale, Locale.current) // Localizzazione per tutta la HomeView
         .onAppear {
             print("🏠 HomeView appeared")
             viewContext.refreshAllObjects()
