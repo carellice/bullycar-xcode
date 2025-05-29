@@ -14,6 +14,7 @@ struct HomeView: View {
     @State private var showingAddCar = false
     @State private var refreshID = UUID()
     @State private var forceRefresh = false
+    @State private var addCarViewKey = UUID() // Chiave per resettare AddCarView
     
     var body: some View {
         NavigationView {
@@ -54,7 +55,11 @@ struct HomeView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingAddCar = true }) {
+                    Button(action: {
+                        // Reset chiave prima di aprire
+                        addCarViewKey = UUID()
+                        showingAddCar = true
+                    }) {
                         Image(systemName: "plus")
                     }
                 }
@@ -64,35 +69,49 @@ struct HomeView: View {
                     showingAddCar = false
                     refreshID = UUID()
                 })
+                .id(addCarViewKey) // Usa chiave per forzare ricreazione vista
             }
             .sheet(isPresented: $settingsManager.isShowingSettings, onDismiss: {
-                print("🎛️ Impostazioni chiuse - reset preventivo")
+                print("🎛️ Impostazioni chiuse - cleanup")
                 settingsManager.closeSettings()
             }) {
                 SettingsView()
                     .environmentObject(themeManager)
                     .id(settingsManager.settingsViewKey)
                     .onDisappear {
-                        // Reset aggiuntivo quando la vista scompare
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        // Cleanup aggiuntivo quando la vista scompare
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             settingsManager.resetSettingsState()
                         }
                     }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CarDataChanged"))) { _ in
                 print("📡 Ricevuta notifica CarDataChanged")
-                refreshID = UUID()
-                forceRefresh.toggle()
+                refreshView()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ImportCompleted"))) { _ in
+                print("📡 Import completato - refresh completo")
+                refreshView()
+                // Reset anche la chiave di AddCar per evitare conflitti
+                addCarViewKey = UUID()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ForceSettingsReset"))) { _ in
-                print("📡 Reset forzato impostazioni richiesto")
+                print("📡 Reset forzato impostazioni")
                 settingsManager.resetSettingsState()
+                // Reset anche AddCar
+                addCarViewKey = UUID()
             }
         }
         .onAppear {
             viewContext.refreshAllObjects()
         }
         .id(forceRefresh)
+    }
+    
+    private func refreshView() {
+        refreshID = UUID()
+        forceRefresh.toggle()
+        viewContext.refreshAllObjects()
     }
 }
 

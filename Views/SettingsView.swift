@@ -295,6 +295,9 @@ struct DocumentExporter: View {
 }
 
 // MARK: - Document Import
+import SwiftUI
+import CoreData
+
 struct DocumentImporter: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
@@ -346,15 +349,7 @@ struct DocumentImporter: View {
                         }
                         
                         Button("Chiudi") {
-                            // Forza reset delle impostazioni prima di chiudere
-                            NotificationCenter.default.post(
-                                name: NSNotification.Name("ForceSettingsReset"),
-                                object: nil
-                            )
-                            
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                dismiss()
-                            }
+                            handleSuccessfulImport()
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -410,6 +405,12 @@ struct DocumentImporter: View {
         errorMessage = nil
         successMessage = nil
         
+        // Notifica inizio importazione
+        NotificationCenter.default.post(
+            name: NSNotification.Name("ImportStarted"),
+            object: nil
+        )
+        
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 // Elimina tutti i dati esistenti
@@ -423,25 +424,22 @@ struct DocumentImporter: View {
                 
                 DispatchQueue.main.async {
                     self.isImporting = false
-                    self.isImportInProgress = false
                     self.successMessage = "Backup importato con successo!"
                     
-                    NotificationCenter.default.post(
-                        name: NSNotification.Name("CarDataChanged"),
-                        object: nil
-                    )
-                    
+                    // Notifica completamento importazione (con delay)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         NotificationCenter.default.post(
-                            name: NSNotification.Name("ImportCompleted"),
+                            name: NSNotification.Name("CarDataChanged"),
                             object: nil
                         )
                         
-                        // Notifica specifica per forzare reset impostazioni
-                        NotificationCenter.default.post(
-                            name: NSNotification.Name("ForceSettingsReset"),
-                            object: nil
-                        )
+                        // Notifica completamento importazione
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            NotificationCenter.default.post(
+                                name: NSNotification.Name("ImportCompleted"),
+                                object: nil
+                            )
+                        }
                     }
                 }
             } catch {
@@ -451,6 +449,22 @@ struct DocumentImporter: View {
                     self.errorMessage = "Errore importazione: \(error.localizedDescription)"
                 }
             }
+        }
+    }
+    
+    private func handleSuccessfulImport() {
+        // Segnala completamento processo
+        isImportInProgress = false
+        
+        // Chiudi l'importer
+        dismiss()
+        
+        // Notifica finale per reset completo
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ForceSettingsReset"),
+                object: nil
+            )
         }
     }
     

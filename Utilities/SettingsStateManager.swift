@@ -7,59 +7,107 @@ class SettingsStateManager: ObservableObject {
     @Published var settingsViewKey = UUID()
     
     private var cancellables = Set<AnyCancellable>()
+    private var isImportInProgress = false
     
     init() {
-        // Listener per reset automatico dopo importazione
+        setupNotificationListeners()
+    }
+    
+    private func setupNotificationListeners() {
+        // Listener per completamento importazione
         NotificationCenter.default.publisher(for: NSNotification.Name("ImportCompleted"))
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                print("📡 Importazione completata - reset settings state")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    self?.resetSettingsState()
-                }
+                print("📡 Importazione completata - reset completo")
+                self?.handleImportCompletion()
             }
             .store(in: &cancellables)
         
         // Listener per reset forzato
         NotificationCenter.default.publisher(for: NSNotification.Name("ForceSettingsReset"))
             .sink { [weak self] _ in
-                print("📡 Reset forzato settings - chiusura immediata")
-                DispatchQueue.main.async {
-                    self?.isShowingSettings = false
-                    self?.resetSettingsState()
-                }
+                print("📡 Reset forzato settings")
+                self?.forceReset()
+            }
+            .store(in: &cancellables)
+        
+        // Listener per inizio importazione
+        NotificationCenter.default.publisher(for: NSNotification.Name("ImportStarted"))
+            .sink { [weak self] _ in
+                print("📡 Importazione iniziata")
+                self?.isImportInProgress = true
             }
             .store(in: &cancellables)
     }
     
     func openSettings() {
+        guard !isImportInProgress else {
+            print("⚠️ Importazione in corso - apertura impostazioni bloccata")
+            return
+        }
+        
         print("🎛️ Apertura impostazioni richiesta")
         
-        // Reset preventivo per assicurarsi che non ci siano conflitti
+        // Reset completo prima dell'apertura
         resetSettingsState()
         
-        // Apertura ritardata per dare tempo al reset
+        // Apertura con delay per garantire pulizia stato
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.isShowingSettings = true
+            withAnimation(.easeInOut(duration: 0.3)) {
+                self.isShowingSettings = true
+            }
             print("✅ Impostazioni aperte")
         }
     }
     
     func closeSettings() {
         print("🎛️ Chiusura impostazioni")
+        withAnimation(.easeInOut(duration: 0.3)) {
+            isShowingSettings = false
+        }
+        
+        // Reset dopo chiusura
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.cleanupAfterClose()
+        }
+    }
+    
+    private func handleImportCompletion() {
+        isImportInProgress = false
+        
+        // Chiudi immediatamente le impostazioni se aperte
+        if isShowingSettings {
+            isShowingSettings = false
+        }
+        
+        // Reset completo con delay maggiore
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.resetSettingsState()
+            print("✅ Reset post-importazione completato")
+        }
+    }
+    
+    private func forceReset() {
+        isImportInProgress = false
         isShowingSettings = false
         
-        // Reset dopo chiusura per pulire lo stato
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.async {
             self.resetSettingsState()
         }
     }
     
-    // Metodo pubblico per reset forzato
+    private func cleanupAfterClose() {
+        if !isImportInProgress {
+            resetSettingsState()
+        }
+    }
+    
+    // Reset completo dello stato
     func resetSettingsState() {
-        print("🔄 Reset pubblico stato impostazioni")
+        print("🔄 Reset completo stato impostazioni")
         settingsViewKey = UUID()
         
-        // Se le impostazioni sono aperte durante un reset, chiudile
+        // Assicurati che le impostazioni siano chiuse
         if isShowingSettings {
             isShowingSettings = false
         }
