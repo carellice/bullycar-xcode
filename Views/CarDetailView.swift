@@ -10,6 +10,17 @@ struct CarDetailView: View {
     @State private var showingCopyFeedback = false
     @Environment(\.dismiss) private var dismiss
     
+    private func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "" }
+        
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "it_IT")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        
+        return formatter.string(from: date)
+    }
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -106,7 +117,7 @@ struct CarDetailView: View {
             
             HStack {
                 InfoItem(title: "Immatricolazione",
-                        value: car.registrationDate?.formatted(date: .abbreviated, time: .omitted) ?? "")
+                         value: formatDate(car.registrationDate))
                 Divider()
                 InfoItem(title: "Chilometraggio", value: "\(car.mileage) km")
             }
@@ -307,6 +318,17 @@ struct MaintenanceRowView: View {
         }
     }
     
+    var formattedDate: String {
+        guard let date = maintenance.date else { return "" }
+        
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "it_IT")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        
+        return formatter.string(from: date)
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -314,7 +336,7 @@ struct MaintenanceRowView: View {
                     Text(maintenanceTypeName)
                         .font(.headline)
                     
-                    Text(maintenance.date?.formatted(date: .abbreviated, time: .omitted) ?? "")
+                    Text(formattedDate)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -563,7 +585,7 @@ struct DocumentRowView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    Text(document.dateAdded?.formatted(date: .abbreviated, time: .omitted) ?? "")
+                    Text(formatDate(document.dateAdded))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -623,6 +645,17 @@ struct DocumentRowView: View {
         .sheet(isPresented: $showingDocument) {
             DocumentViewerView(document: document)
         }
+    }
+    
+    private func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "" }
+        
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "it_IT")
+        formatter.dateStyle = .short
+        formatter.timeStyle = .none
+        
+        return formatter.string(from: date)
     }
     
     private func deleteDocument() {
