@@ -404,11 +404,11 @@ struct DocumentImporter: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 10) {
-                    Label("Nota importante:", systemImage: "exclamationmark.triangle.fill")
+                    Label("Importante:", systemImage: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
                         .font(.headline)
                     
-                    Text("L'importazione aggiungerà i dati del backup a quelli esistenti. Se vuoi sostituire completamente i dati, elimina prima quelli attuali dalle impostazioni.")
+                    Text("L'importazione sostituirà completamente tutti i dati esistenti. I dati attuali verranno eliminati e sostituiti con quelli del backup selezionato.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -444,8 +444,20 @@ struct DocumentImporter: View {
         
         DispatchQueue.global(qos: .userInitiated).async {
             do {
+                print("📂 Inizio importazione backup...")
+                
+                // PRIMA: Elimina tutti i dati esistenti
+                print("🗑️ Eliminazione dati locali esistenti...")
+                DispatchQueue.main.sync {
+                    self.deleteAllLocalData()
+                }
+                print("✅ Dati locali eliminati con successo")
+                
+                // DOPO: Importa i nuovi dati
+                print("📥 Importazione nuovi dati...")
                 let data = try Data(contentsOf: url)
                 try BackupManager.importData(data, to: viewContext)
+                print("✅ Nuovi dati importati con successo")
                 
                 DispatchQueue.main.async {
                     isImporting = false
@@ -463,11 +475,39 @@ struct DocumentImporter: View {
                     }
                 }
             } catch {
+                print("❌ Errore durante l'importazione: \(error)")
                 DispatchQueue.main.async {
                     isImporting = false
                     errorMessage = "Errore importazione: \(error.localizedDescription)"
                 }
             }
+        }
+    }
+    
+    // Funzione per eliminare tutti i dati locali
+    private func deleteAllLocalData() {
+        print("🗑️ Iniziando eliminazione completa dei dati locali...")
+        
+        do {
+            // Elimina tutte le auto (e le relazioni cascade elimineranno il resto)
+            let carRequest: NSFetchRequest<Car> = Car.fetchRequest()
+            let cars = try viewContext.fetch(carRequest)
+            
+            for car in cars {
+                viewContext.delete(car)
+            }
+            
+            // Salva le modifiche
+            try viewContext.save()
+            print("✅ Tutti i dati locali eliminati dal database")
+            
+            // Reset completo del contesto
+            viewContext.reset()
+            print("✅ Contesto Core Data resettato")
+            
+        } catch {
+            print("❌ Errore eliminazione dati locali: \(error)")
+            // Non lanciamo l'errore perché vogliamo comunque provare l'importazione
         }
     }
 }
