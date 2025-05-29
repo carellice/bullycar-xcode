@@ -224,13 +224,13 @@ struct CarDetailView: View {
 }
 
 // MARK: - Tab Views
-
 struct MaintenanceTabView: View {
     @ObservedObject var car: Car
     @Binding var showingAddMaintenance: Bool
     @Environment(\.managedObjectContext) private var viewContext
     @State private var maintenanceToDelete: Maintenance?
     @State private var showingDeleteAlert = false
+    @State private var refreshID = UUID()
     
     var maintenances: [Maintenance] {
         let set = car.maintenances as? Set<Maintenance> ?? []
@@ -273,6 +273,7 @@ struct MaintenanceTabView: View {
                     )
                     .padding(.horizontal)
                 }
+                .id(refreshID) // Forza refresh quando cambia
             }
         }
         .alert("Elimina intervento", isPresented: $showingDeleteAlert) {
@@ -285,6 +286,18 @@ struct MaintenanceTabView: View {
         } message: {
             Text("Sei sicuro di voler eliminare questo intervento? Questa azione non può essere annullata.")
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("MaintenanceDataChanged"))) { _ in
+            print("📡 Ricevuta notifica MaintenanceDataChanged")
+            refreshMaintenanceList()
+        }
+    }
+    
+    private func refreshMaintenanceList() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            refreshID = UUID()
+            viewContext.refresh(car, mergeChanges: true)
+        }
+        print("🔄 Lista manutenzioni aggiornata")
     }
     
     private func deleteMaintenance(_ maintenance: Maintenance) {
@@ -295,6 +308,7 @@ struct MaintenanceTabView: View {
         
         do {
             try viewContext.save()
+            refreshMaintenanceList()
         } catch {
             print("Errore eliminazione intervento: \(error)")
         }

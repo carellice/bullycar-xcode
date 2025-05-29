@@ -325,9 +325,23 @@ struct AddMaintenanceView: View {
             
             do {
                 try viewContext.save()
+                print("✅ Manutenzione salvata")
+                
+                // PRIMA chiudi la vista con animazione fluida
                 dismiss()
+                
+                // POI invia la notifica con un piccolo delay
+                // per permettere all'animazione di completarsi
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("MaintenanceDataChanged"),
+                        object: nil
+                    )
+                    print("📡 Notifica MaintenanceDataChanged inviata dopo chiusura")
+                }
+                
             } catch {
-                print("Errore nel salvataggio: \(error)")
+                print("❌ Errore nel salvataggio: \(error)")
             }
         }
     }
