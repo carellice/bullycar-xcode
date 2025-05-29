@@ -110,6 +110,18 @@ struct SettingsView: View {
                         Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
                             .foregroundColor(.secondary)
                     }
+                    
+                    Button(action: {
+                        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+                        dismiss()
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundColor(.blue)
+                            Text("Rivedi Onboarding")
+                                .foregroundColor(.blue)
+                        }
+                    }
                 }
                 
                 // Sezione pericolosa
