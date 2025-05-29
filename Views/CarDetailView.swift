@@ -7,6 +7,7 @@ struct CarDetailView: View {
     @State private var showingEditCar = false
     @State private var showingDeleteAlert = false
     @State private var showingAddMaintenance = false
+    @State private var showingCopyFeedback = false
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -53,6 +54,11 @@ struct CarDetailView: View {
         } message: {
             Text("Sei sicuro di voler eliminare questa auto? Questa azione non può essere annullata.")
         }
+        // Toast per feedback copia targa
+        .overlay(
+            copyFeedbackToast,
+            alignment: .top
+        )
     }
     
     var carImageHeader: some View {
@@ -88,7 +94,14 @@ struct CarDetailView: View {
             HStack {
                 InfoItem(title: "Anno", value: String(car.year))
                 Divider()
-                InfoItem(title: "Targa", value: car.plate ?? "")
+                // Targa copiabile
+                CopyableInfoItem(
+                    title: "Targa",
+                    value: car.plate ?? "",
+                    onCopy: {
+                        copyPlateNumber()
+                    }
+                )
             }
             
             HStack {
@@ -103,6 +116,35 @@ struct CarDetailView: View {
         .cornerRadius(12)
         .padding(.horizontal)
         .padding(.vertical, 8)
+    }
+    
+    // Toast di feedback per la copia
+    var copyFeedbackToast: some View {
+        Group {
+            if showingCopyFeedback {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.title3)
+                    
+                    Text("Targa copiata negli appunti")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 25)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                )
+                .padding(.top, 10)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .top).combined(with: .opacity),
+                    removal: .move(edge: .top).combined(with: .opacity)
+                ))
+            }
+        }
     }
     
     var tabSection: some View {
@@ -120,13 +162,13 @@ struct CarDetailView: View {
             // Tab content
             switch selectedTab {
             case 0:
-                MaintenanceListView(car: car, showingAddMaintenance: $showingAddMaintenance)
+                MaintenanceTabView(car: car, showingAddMaintenance: $showingAddMaintenance)
             case 1:
-                DocumentsListView(car: car)
+                DocumentsTabView(car: car)
             case 2:
-                RemindersListView(car: car)
+                RemindersTabView(car: car)
             case 3:
-                NotesView(car: car)
+                NotesTabView(car: car)
             default:
                 EmptyView()
             }
@@ -143,274 +185,36 @@ struct CarDetailView: View {
             print("Errore eliminazione auto: \(error)")
         }
     }
-}
-
-// Vista per le note dell'auto
-struct NotesView: View {
-    @ObservedObject var car: Car
-    @State private var isEditing = false
-    @State private var tempNotes = ""
-    @Environment(\.managedObjectContext) private var viewContext
-    @FocusState private var isTextEditorFocused: Bool
-    @State private var characterCount = 0
     
-    var body: some View {
-        VStack(spacing: 0) {
-            if isEditing {
-                // Modalità modifica
-                VStack(spacing: 0) {
-                    // Header
-                    HStack {
-                        Button(action: {
-                            tempNotes = car.notes ?? ""
-                            isEditing = false
-                            isTextEditorFocused = false
-                        }) {
-                            Text("Annulla")
-                                .foregroundColor(.red)
-                        }
-                        
-                        Spacer()
-                        
-                        Text("Modifica Note")
-                            .font(.headline)
-                        
-                        Spacer()
-                        
-                        Button(action: { saveNotes() }) {
-                            Text("Salva")
-                                .fontWeight(.bold)
-                                .foregroundColor(.blue)
-                        }
-                        .disabled(tempNotes == (car.notes ?? ""))
-                    }
-                    .padding()
-                    .background(Color(UIColor.systemBackground))
-                    
-                    Divider()
-                    
-                    // Editor area
-                    ZStack(alignment: .topLeading) {
-                        // Placeholder
-                        if tempNotes.isEmpty {
-                            Text("Scrivi le tue note qui...\n\nPuoi annotare:\n• Dove hai parcheggiato\n• Problemi da controllare\n• Contatti del meccanico\n• Prossimi interventi programmati\n• Qualsiasi informazione utile")
-                                .foregroundColor(Color(UIColor.placeholderText))
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 8)
-                                .allowsHitTesting(false)
-                        }
-                        
-                        // Text Editor
-                        TextEditor(text: $tempNotes)
-                            .padding(4)
-                            .focused($isTextEditorFocused)
-                            .onChange(of: tempNotes) { newValue in
-                                characterCount = newValue.count
-                            }
-                            .frame(minHeight: 300) // Altezza minima fissa
-                    }
-                    .font(.body)
-                    .background(Color(UIColor.systemBackground))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color(UIColor.separator), lineWidth: 0.5)
-                    )
-                    .padding()
-                    
-                    // Contatore caratteri
-                    HStack {
-                        Spacer()
-                        Text("\(characterCount) caratteri")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
-                    
-                    // Suggerimenti rapidi
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(quickNotes, id: \.self) { note in
-                                Button(action: {
-                                    if !tempNotes.isEmpty {
-                                        tempNotes += "\n"
-                                    }
-                                    tempNotes += note
-                                }) {
-                                    Text(note)
-                                        .font(.caption)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Color.blue.opacity(0.1))
-                                        .foregroundColor(.blue)
-                                        .cornerRadius(15)
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                    .padding(.bottom)
-                }
-                .background(Color(UIColor.systemGroupedBackground))
-                .onAppear {
-                    characterCount = tempNotes.count
-                    // Attiva automaticamente la tastiera
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        isTextEditorFocused = true
-                    }
-                }
-            } else {
-                // Modalità visualizzazione
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        if let notes = car.notes, !notes.isEmpty {
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Image(systemName: "note.text")
-                                        .font(.title3)
-                                        .foregroundColor(.blue)
-                                    
-                                    Text("Le mie note")
-                                        .font(.headline)
-                                    
-                                    Spacer()
-                                    
-                                    Text("\(notes.count) caratteri")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Divider()
-                                
-                                Text(notes)
-                                    .font(.body)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .textSelection(.enabled)
-                            }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(UIColor.secondarySystemGroupedBackground))
-                                    .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
-                            )
-                        } else {
-                            // Empty state
-                            VStack(spacing: 20) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.blue.opacity(0.1))
-                                        .frame(width: 80, height: 80)
-                                    
-                                    Image(systemName: "note.text")
-                                        .font(.system(size: 35))
-                                        .foregroundColor(.blue)
-                                }
-                                
-                                VStack(spacing: 8) {
-                                    Text("Nessuna nota")
-                                        .font(.title3)
-                                        .fontWeight(.semibold)
-                                    
-                                    Text("Aggiungi note per ricordare informazioni importanti su questa auto")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .multilineTextAlignment(.center)
-                                        .padding(.horizontal)
-                                }
-                                
-                                Button(action: {
-                                    tempNotes = car.notes ?? ""
-                                    isEditing = true
-                                }) {
-                                    Label("Aggiungi note", systemImage: "square.and.pencil")
-                                        .font(.body)
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 12)
-                                        .background(Color.blue)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(25)
-                                }
-                                .padding(.top, 8)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 60)
-                        }
-                    }
-                    .padding()
-                }
-                .background(Color(UIColor.systemGroupedBackground))
-                
-                // Floating Action Button per modifica
-                if car.notes != nil && !car.notes!.isEmpty {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Button(action: {
-                                tempNotes = car.notes ?? ""
-                                isEditing = true
-                            }) {
-                                Image(systemName: "pencil")
-                                    .font(.title2)
-                                    .foregroundColor(.white)
-                                    .frame(width: 56, height: 56)
-                                    .background(Circle().fill(Color.blue))
-                                    .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
-                            }
-                            .padding()
-                        }
-                    }
-                }
+    private func copyPlateNumber() {
+        guard let plate = car.plate, !plate.isEmpty else { return }
+        
+        // Copia negli appunti
+        UIPasteboard.general.string = plate
+        
+        // Mostra feedback
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+            showingCopyFeedback = true
+        }
+        
+        // Nascondi feedback dopo 2 secondi
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                showingCopyFeedback = false
             }
         }
-        .onAppear {
-            tempNotes = car.notes ?? ""
-        }
-    }
-    
-    private let quickNotes = [
-        "📍 Parcheggiata in: ",
-        "⚠️ Da controllare: ",
-        "📅 Prossimo appuntamento: ",
-        "🔧 Problema: ",
-        "✅ Fatto: "
-    ]
-    
-    private func saveNotes() {
-        withAnimation {
-            car.notes = tempNotes.isEmpty ? nil : tempNotes.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-            do {
-                try viewContext.save()
-                isEditing = false
-                isTextEditorFocused = false
-            } catch {
-                print("Errore salvataggio note: \(error)")
-            }
-        }
+        
+        // Feedback aptico
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.impactOccurred()
+        
+        print("📋 Targa copiata: \(plate)")
     }
 }
 
-// Componente per info singola
-struct InfoItem: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Text(value)
-                .font(.body)
-                .fontWeight(.medium)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
+// MARK: - Tab Views
 
-// Vista lista manutenzioni
-struct MaintenanceListView: View {
+struct MaintenanceTabView: View {
     @ObservedObject var car: Car
     @Binding var showingAddMaintenance: Bool
     @Environment(\.managedObjectContext) private var viewContext
@@ -473,12 +277,9 @@ struct MaintenanceListView: View {
     }
     
     private func deleteMaintenance(_ maintenance: Maintenance) {
-        // Se c'è un promemoria associato, eliminalo
         if let reminder = maintenance.reminder {
             viewContext.delete(reminder)
         }
-        
-        // Elimina l'intervento
         viewContext.delete(maintenance)
         
         do {
@@ -489,7 +290,6 @@ struct MaintenanceListView: View {
     }
 }
 
-// Riga singola manutenzione
 struct MaintenanceRowView: View {
     let maintenance: Maintenance
     let onDelete: () -> Void
@@ -497,20 +297,13 @@ struct MaintenanceRowView: View {
     
     var maintenanceTypeName: String {
         switch maintenance.type {
-        case "tagliando":
-            return "Tagliando"
-        case "revisione":
-            return "Revisione"
-        case "bollo":
-            return "Bollo"
-        case "assicurazione":
-            return "Assicurazione"
-        case "gomme":
-            return "Cambio gomme"
-        case "custom":
-            return maintenance.customType ?? "Personalizzato"
-        default:
-            return maintenance.type ?? ""
+        case "tagliando": return "Tagliando"
+        case "revisione": return "Revisione"
+        case "bollo": return "Bollo"
+        case "assicurazione": return "Assicurazione"
+        case "gomme": return "Cambio gomme"
+        case "custom": return maintenance.customType ?? "Personalizzato"
+        default: return maintenance.type ?? ""
         }
     }
     
@@ -539,7 +332,6 @@ struct MaintenanceRowView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                // Menu con opzioni
                 Menu {
                     Button(action: { showingEditMaintenance = true }) {
                         Label("Modifica", systemImage: "pencil")
@@ -561,73 +353,19 @@ struct MaintenanceRowView: View {
                     .foregroundColor(.secondary)
                     .lineLimit(2)
             }
-            
-            // Mostra info promemoria se presente
-            if let reminder = maintenance.reminder {
-                HStack {
-                    Image(systemName: "bell.fill")
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                    
-                    Text(getReminderText(reminder))
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                }
-                .padding(.top, 4)
-            }
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(10)
-        .contextMenu {
-            Button(action: { showingEditMaintenance = true }) {
-                Label("Modifica", systemImage: "pencil")
-            }
-            
-            Button(role: .destructive, action: onDelete) {
-                Label("Elimina", systemImage: "trash")
-            }
-        }
         .sheet(isPresented: $showingEditMaintenance) {
             if let car = maintenance.car {
                 AddMaintenanceView(car: car, maintenanceToEdit: maintenance)
             }
         }
     }
-    
-    private func getReminderText(_ reminder: Reminder) -> String {
-        switch reminder.type {
-        case "date":
-            if let date = reminder.date {
-                return "Prossimo: \(date.formatted(date: .abbreviated, time: .omitted))"
-            }
-        case "interval":
-            if reminder.intervalValue > 0, let unit = reminder.intervalUnit {
-                let unitText = unit == "months" ? "mesi" : "anni"
-                return "Ogni \(reminder.intervalValue) \(unitText)"
-            }
-        case "mileage":
-            if reminder.mileage > 0 {
-                return "A \(reminder.mileage) km"
-            }
-        case "both":
-            var text = ""
-            if let date = reminder.date {
-                text = "Prossimo: \(date.formatted(date: .abbreviated, time: .omitted))"
-            }
-            if reminder.mileage > 0 {
-                text += " o \(reminder.mileage) km"
-            }
-            return text
-        default:
-            break
-        }
-        return "Promemoria impostato"
-    }
 }
 
-// Vista lista documenti
-struct DocumentsListView: View {
+struct DocumentsTabView: View {
     @ObservedObject var car: Car
     @State private var showingDocumentPicker = false
     @State private var showingImagePicker = false
@@ -670,7 +408,7 @@ struct DocumentsListView: View {
                 ScrollView {
                     VStack(spacing: 12) {
                         ForEach(documents) { document in
-                            DocumentRowView(document: document, car: car)
+                            DocumentRowView(document: document)
                                 .padding(.horizontal)
                         }
                     }
@@ -749,10 +487,8 @@ struct DocumentsListView: View {
     }
 }
 
-// Vista per singolo documento
 struct DocumentRowView: View {
     let document: Document
-    let car: Car
     @State private var showingDeleteAlert = false
     @State private var showingDocument = false
     @Environment(\.managedObjectContext) private var viewContext
@@ -840,286 +576,186 @@ struct DocumentRowView: View {
     }
 }
 
-// Vista lista promemoria
-struct RemindersListView: View {
+struct RemindersTabView: View {
     @ObservedObject var car: Car
-    @State private var showOnlyActive = true
     
-    var reminders: [(maintenance: Maintenance, reminder: Reminder, status: ReminderStatus)] {
-        let set = car.maintenances as? Set<Maintenance> ?? []
-        let maintenances = set.sorted {
-            ($0.date ?? Date.distantPast) > ($1.date ?? Date.distantPast)
-        }
-        var remindersList: [(Maintenance, Reminder, ReminderStatus)] = []
-        
-        for maintenance in maintenances {
-            if let reminder = maintenance.reminder {
-                let status = getReminderStatus(reminder, carMileage: car.mileage)
-                if !showOnlyActive || status != .completed {
-                    remindersList.append((maintenance, reminder, status))
-                }
-            }
-        }
-        
-        // Ordina per urgenza
-        return remindersList.sorted { first, second in
-            if first.2.priority != second.2.priority {
-                return first.2.priority < second.2.priority
-            }
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "bell")
+                .font(.system(size: 40))
+                .foregroundColor(.gray)
             
-            // Se hanno la stessa priorità, ordina per data
-            let firstDate = first.1.date ?? Date.distantFuture
-            let secondDate = second.1.date ?? Date.distantFuture
-            return firstDate < secondDate
+            Text("Promemoria")
+                .font(.headline)
+            
+            Text("Funzionalità promemoria in arrivo")
+                .foregroundColor(.secondary)
         }
+        .padding(.vertical, 40)
     }
+}
+
+struct NotesTabView: View {
+    @ObservedObject var car: Car
+    @State private var isEditing = false
+    @State private var tempNotes = ""
+    @Environment(\.managedObjectContext) private var viewContext
+    @FocusState private var isTextEditorFocused: Bool
     
     var body: some View {
         VStack {
-            // Toggle per mostrare solo promemoria attivi
-            Toggle("Mostra solo promemoria attivi", isOn: $showOnlyActive)
+            if let notes = car.notes, !notes.isEmpty, !isEditing {
+                // Mostra note esistenti
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Le mie note")
+                            .font(.headline)
+                        
+                        Spacer()
+                        
+                        Button("Modifica") {
+                            tempNotes = notes
+                            isEditing = true
+                        }
+                        .foregroundColor(.blue)
+                    }
+                    
+                    Text(notes)
+                        .font(.body)
+                        .textSelection(.enabled)
+                }
+                .padding()
+                .background(Color(UIColor.secondarySystemGroupedBackground))
+                .cornerRadius(12)
                 .padding(.horizontal)
-                .padding(.bottom, 8)
-            
-            if reminders.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: showOnlyActive ? "bell.slash" : "bell")
+            } else if isEditing {
+                // Modalità modifica
+                VStack {
+                    HStack {
+                        Button("Annulla") {
+                            isEditing = false
+                            tempNotes = ""
+                        }
+                        .foregroundColor(.red)
+                        
+                        Spacer()
+                        
+                        Button("Salva") {
+                            saveNotes()
+                        }
+                        .foregroundColor(.blue)
+                        .disabled(tempNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                    .padding()
+                    
+                    TextEditor(text: $tempNotes)
+                        .focused($isTextEditorFocused)
+                        .frame(minHeight: 200)
+                        .padding()
+                        .background(Color(UIColor.systemBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                }
+                .onAppear {
+                    isTextEditorFocused = true
+                }
+            } else {
+                // Stato vuoto
+                VStack(spacing: 20) {
+                    Image(systemName: "note.text")
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                     
-                    Text(showOnlyActive ? "Nessun promemoria attivo" : "Nessun promemoria impostato")
-                        .foregroundColor(.secondary)
-                }
-                .padding(.vertical, 40)
-            } else {
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(reminders, id: \.maintenance.id) { item in
-                            ReminderCardView(
-                                maintenance: item.maintenance,
-                                reminder: item.reminder,
-                                status: item.status,
-                                carMileage: car.mileage
-                            )
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-            }
-        }
-    }
-    
-    func getReminderStatus(_ reminder: Reminder, carMileage: Int32) -> ReminderStatus {
-        let today = Date()
-        var isExpired = false
-        var isNear = false
-        var daysRemaining: Int? = nil
-        var kmRemaining: Int32? = nil
-        
-        // Controlla la data
-        if let dueDate = reminder.date {
-            let calendar = Calendar.current
-            let days = calendar.dateComponents([.day], from: today, to: dueDate).day ?? 0
-            daysRemaining = days
-            
-            if days < 0 {
-                isExpired = true
-            } else if days <= 30 {
-                isNear = true
-            }
-        }
-        
-        // Controlla il chilometraggio
-        if reminder.mileage > 0 {
-            let kmDiff = reminder.mileage - carMileage
-            kmRemaining = kmDiff
-            
-            if kmDiff < 0 {
-                isExpired = true
-            } else if kmDiff <= 1000 {
-                isNear = true
-            }
-        }
-        
-        if isExpired {
-            return .expired(daysRemaining: daysRemaining, kmRemaining: kmRemaining)
-        } else if isNear {
-            return .near(daysRemaining: daysRemaining, kmRemaining: kmRemaining)
-        } else {
-            return .future(daysRemaining: daysRemaining, kmRemaining: kmRemaining)
-        }
-    }
-}
-
-// Enum per lo stato del promemoria
-enum ReminderStatus: Equatable {
-    case expired(daysRemaining: Int?, kmRemaining: Int32?)
-    case near(daysRemaining: Int?, kmRemaining: Int32?)
-    case future(daysRemaining: Int?, kmRemaining: Int32?)
-    case completed
-    
-    var color: Color {
-        switch self {
-        case .expired:
-            return .red
-        case .near:
-            return .orange
-        case .future:
-            return .green
-        case .completed:
-            return .gray
-        }
-    }
-    
-    var icon: String {
-        switch self {
-        case .expired:
-            return "exclamationmark.circle.fill"
-        case .near:
-            return "bell.badge.fill"
-        case .future:
-            return "bell.fill"
-        case .completed:
-            return "checkmark.circle.fill"
-        }
-    }
-    
-    var priority: Int {
-        switch self {
-        case .expired:
-            return 0
-        case .near:
-            return 1
-        case .future:
-            return 2
-        case .completed:
-            return 3
-        }
-    }
-}
-
-// Vista per singola card promemoria
-struct ReminderCardView: View {
-    let maintenance: Maintenance
-    let reminder: Reminder
-    let status: ReminderStatus
-    let carMileage: Int32
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: status.icon)
-                    .font(.title2)
-                    .foregroundColor(status.color)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(getMaintenanceTypeName(maintenance))
+                    Text("Nessuna nota")
                         .font(.headline)
                     
-                    Text("Ultimo: \(maintenance.date?.formatted(date: .abbreviated, time: .omitted) ?? "")")
-                        .font(.caption)
+                    Text("Aggiungi note per ricordare informazioni importanti")
                         .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-            }
-            
-            Divider()
-            
-            // Dettagli promemoria
-            VStack(alignment: .leading, spacing: 8) {
-                if let date = reminder.date {
-                    HStack {
-                        Image(systemName: "calendar")
-                            .foregroundColor(.secondary)
-                            .frame(width: 20)
-                        
-                        Text("Scadenza: \(date.formatted(date: .abbreviated, time: .omitted))")
-                            .font(.subheadline)
-                        
-                        Spacer()
-                        
-                        // Mostra giorni rimanenti
-                        if case let .expired(days, _) = status, let days = days {
-                            Text("Scaduto da \(abs(days)) giorni")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        } else if case let .near(days, _) = status, let days = days {
-                            Text(days == 0 ? "Oggi" : "Tra \(days) giorni")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        } else if case let .future(days, _) = status, let days = days {
-                            Text("Tra \(days) giorni")
-                                .font(.caption)
-                                .foregroundColor(.green)
-                        }
+                        .multilineTextAlignment(.center)
+                    
+                    Button("Aggiungi note") {
+                        tempNotes = ""
+                        isEditing = true
                     }
+                    .buttonStyle(.borderedProminent)
                 }
-                
-                if reminder.mileage > 0 {
-                    HStack {
-                        Image(systemName: "gauge")
-                            .foregroundColor(.secondary)
-                            .frame(width: 20)
-                        
-                        Text("A: \(reminder.mileage) km")
-                            .font(.subheadline)
-                        
-                        Spacer()
-                        
-                        // Mostra km rimanenti
-                        let kmDiff = reminder.mileage - carMileage
-                        if kmDiff < 0 {
-                            Text("Superato di \(abs(kmDiff)) km")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        } else {
-                            Text("Mancano \(kmDiff) km")
-                                .font(.caption)
-                                .foregroundColor(kmDiff <= 1000 ? .orange : .green)
-                        }
-                    }
-                }
-                
-                if reminder.intervalValue > 0, let unit = reminder.intervalUnit {
-                    HStack {
-                        Image(systemName: "repeat")
-                            .foregroundColor(.secondary)
-                            .frame(width: 20)
-                        
-                        let unitText = unit == "months" ? "mesi" : "anni"
-                        Text("Ripete ogni \(reminder.intervalValue) \(unitText)")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                }
+                .padding(.vertical, 40)
             }
         }
-        .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(status.color.opacity(0.3), lineWidth: 1)
-        )
     }
     
-    private func getMaintenanceTypeName(_ maintenance: Maintenance) -> String {
-        switch maintenance.type {
-        case "tagliando":
-            return "Tagliando"
-        case "revisione":
-            return "Revisione"
-        case "bollo":
-            return "Bollo"
-        case "assicurazione":
-            return "Assicurazione"
-        case "gomme":
-            return "Cambio gomme"
-        case "custom":
-            return maintenance.customType ?? "Personalizzato"
-        default:
-            return maintenance.type ?? "Intervento"
+    private func saveNotes() {
+        let trimmedNotes = tempNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        car.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
+        
+        do {
+            try viewContext.save()
+            isEditing = false
+            tempNotes = ""
+        } catch {
+            print("Errore salvataggio note: \(error)")
         }
+    }
+}
+
+// MARK: - Components
+
+struct InfoItem: View {
+    let title: String
+    let value: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.body)
+                .fontWeight(.medium)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct CopyableInfoItem: View {
+    let title: String
+    let value: String
+    let onCopy: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Button(action: onCopy) {
+                HStack(spacing: 6) {
+                    Text(value)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                    
+                    Image(systemName: "doc.on.doc")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct CarDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        let context = PersistenceController.preview.container.viewContext
+        let car = Car(context: context)
+        car.name = "Auto Test"
+        car.brand = "BMW"
+        car.model = "Serie 3"
+        car.plate = "AB123CD"
+        
+        return CarDetailView(car: car)
+            .environment(\.managedObjectContext, context)
     }
 }
