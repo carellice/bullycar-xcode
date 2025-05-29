@@ -5,7 +5,6 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject var themeManager: ThemeManager
-    @Environment(\.colorScheme) var colorScheme
     @AppStorage("enableNotifications") private var enableNotifications = true
     @AppStorage("reminderDays") private var reminderDays = 7
     @State private var showingDeleteAlert = false
@@ -35,7 +34,6 @@ struct SettingsView: View {
                                     withAnimation(.easeInOut(duration: 0.3)) {
                                         themeManager.themeMode = mode
                                     }
-                                    // Il refresh ora avviene automaticamente tramite onReceive
                                 }) {
                                     HStack {
                                         Image(systemName: mode.systemImage)
@@ -147,7 +145,6 @@ struct SettingsView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .onReceive(themeManager.$themeMode) { _ in
-            // Forza il refresh della vista quando cambia il tema
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 refreshID = UUID()
             }
@@ -176,7 +173,6 @@ struct SettingsView: View {
         print("🗑️ Iniziando eliminazione di tutti i dati...")
         
         do {
-            // Metodo più diretto: fetch e delete individualmente
             let carRequest: NSFetchRequest<Car> = Car.fetchRequest()
             let cars = try viewContext.fetch(carRequest)
             
@@ -184,33 +180,20 @@ struct SettingsView: View {
                 viewContext.delete(car)
             }
             
-            // Salva le modifiche
             try viewContext.save()
-            print("✅ Tutti i dati eliminati dal database")
-            
-            // Reset completo del contesto
             viewContext.reset()
-            print("✅ Contesto resettato")
             
-            // Invia notifica
             NotificationCenter.default.post(
                 name: NSNotification.Name("CarDataChanged"),
                 object: nil
             )
-            print("📡 Notifica inviata")
             
-            // Chiudi dopo un breve momento per permettere il refresh
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 dismiss()
             }
             
         } catch {
             print("❌ Errore eliminazione: \(error)")
-            ErrorManager.shared.showError(
-                "Errore eliminazione",
-                message: "Impossibile eliminare tutti i dati: \(error.localizedDescription)",
-                type: .coreData
-            )
         }
     }
     
@@ -226,41 +209,7 @@ struct SettingsView: View {
     }
 }
 
-// ShareSheet specializzato per i backup
-struct BackupShareSheet: UIViewControllerRepresentable {
-    let data: Data
-    
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        // Crea un file temporaneo con nome appropriato
-        let fileName = BackupManager.generateBackupFileName()
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-        
-        do {
-            try data.write(to: tempURL)
-            print("✅ File backup creato: \(tempURL)")
-            
-            let controller = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
-            
-            // Su iPad, configura il popover
-            if let popover = controller.popoverPresentationController {
-                popover.sourceView = UIView()
-                popover.sourceRect = CGRect(x: UIScreen.main.bounds.midX, y: UIScreen.main.bounds.midY, width: 0, height: 0)
-                popover.permittedArrowDirections = []
-            }
-            
-            return controller
-        } catch {
-            print("❌ Errore creazione file backup: \(error)")
-            // Fallback: condividi i dati raw
-            let controller = UIActivityViewController(activityItems: [data], applicationActivities: nil)
-            return controller
-        }
-    }
-    
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-
-// Vista per esportare documenti
+// MARK: - Document Export
 struct DocumentExporter: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
@@ -345,12 +294,13 @@ struct DocumentExporter: View {
     }
 }
 
-// Vista per importare documenti
+// MARK: - Document Import
 struct DocumentImporter: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingFilePicker = false
     @State private var isImporting = false
+    @State private var isImportInProgress = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
     
@@ -396,7 +346,15 @@ struct DocumentImporter: View {
                         }
                         
                         Button("Chiudi") {
-                            dismiss()
+                            // Forza reset delle impostazioni prima di chiudere
+                            NotificationCenter.default.post(
+                                name: NSNotification.Name("ForceSettingsReset"),
+                                object: nil
+                            )
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                dismiss()
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -432,7 +390,9 @@ struct DocumentImporter: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Chiudi") {
-                        dismiss()
+                        if !isImportInProgress {
+                            dismiss()
+                        }
                     }
                 }
             }
@@ -446,55 +406,56 @@ struct DocumentImporter: View {
     
     private func importData(from url: URL) {
         isImporting = true
+        isImportInProgress = true
         errorMessage = nil
         successMessage = nil
         
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                print("📂 Inizio importazione backup...")
-                
-                // PRIMA: Elimina tutti i dati esistenti
-                print("🗑️ Eliminazione dati locali esistenti...")
+                // Elimina tutti i dati esistenti
                 DispatchQueue.main.sync {
                     self.deleteAllLocalData()
                 }
-                print("✅ Dati locali eliminati con successo")
                 
-                // DOPO: Importa i nuovi dati
-                print("📥 Importazione nuovi dati...")
+                // Importa i nuovi dati
                 let data = try Data(contentsOf: url)
                 try BackupManager.importData(data, to: viewContext)
-                print("✅ Nuovi dati importati con successo")
                 
                 DispatchQueue.main.async {
-                    isImporting = false
-                    successMessage = "Backup importato con successo!"
+                    self.isImporting = false
+                    self.isImportInProgress = false
+                    self.successMessage = "Backup importato con successo!"
                     
-                    // Invia notifica per aggiornare la HomeView
                     NotificationCenter.default.post(
                         name: NSNotification.Name("CarDataChanged"),
                         object: nil
                     )
                     
-                    // Non chiudiamo automaticamente - lasciamo che l'utente veda il messaggio
-                    // e chiuda manualmente le impostazioni
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("ImportCompleted"),
+                            object: nil
+                        )
+                        
+                        // Notifica specifica per forzare reset impostazioni
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("ForceSettingsReset"),
+                            object: nil
+                        )
+                    }
                 }
             } catch {
-                print("❌ Errore durante l'importazione: \(error)")
                 DispatchQueue.main.async {
-                    isImporting = false
-                    errorMessage = "Errore importazione: \(error.localizedDescription)"
+                    self.isImporting = false
+                    self.isImportInProgress = false
+                    self.errorMessage = "Errore importazione: \(error.localizedDescription)"
                 }
             }
         }
     }
     
-    // Funzione per eliminare tutti i dati locali
     private func deleteAllLocalData() {
-        print("🗑️ Iniziando eliminazione completa dei dati locali...")
-        
         do {
-            // Elimina tutte le auto (e le relazioni cascade elimineranno il resto)
             let carRequest: NSFetchRequest<Car> = Car.fetchRequest()
             let cars = try viewContext.fetch(carRequest)
             
@@ -502,17 +463,38 @@ struct DocumentImporter: View {
                 viewContext.delete(car)
             }
             
-            // Salva le modifiche
             try viewContext.save()
-            print("✅ Tutti i dati locali eliminati dal database")
-            
-            // Reset completo del contesto
             viewContext.reset()
-            print("✅ Contesto Core Data resettato")
-            
         } catch {
             print("❌ Errore eliminazione dati locali: \(error)")
-            // Non lanciamo l'errore perché vogliamo comunque provare l'importazione
         }
     }
+}
+
+// MARK: - Backup Share Sheet
+struct BackupShareSheet: UIViewControllerRepresentable {
+    let data: Data
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let fileName = BackupManager.generateBackupFileName()
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        
+        do {
+            try data.write(to: tempURL)
+            let controller = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
+            
+            if let popover = controller.popoverPresentationController {
+                popover.sourceView = UIView()
+                popover.sourceRect = CGRect(x: UIScreen.main.bounds.midX, y: UIScreen.main.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            
+            return controller
+        } catch {
+            let controller = UIActivityViewController(activityItems: [data], applicationActivities: nil)
+            return controller
+        }
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

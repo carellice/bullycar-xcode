@@ -4,6 +4,7 @@ import CoreData
 struct HomeView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject var themeManager: ThemeManager
+    @StateObject private var settingsManager = SettingsStateManager()
     
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Car.name, ascending: true)],
@@ -11,7 +12,6 @@ struct HomeView: View {
     private var cars: FetchedResults<Car>
     
     @State private var showingAddCar = false
-    @State private var showingSettings = false
     @State private var refreshID = UUID()
     @State private var forceRefresh = false
     
@@ -46,7 +46,9 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { showingSettings = true }) {
+                    Button(action: {
+                        settingsManager.openSettings()
+                    }) {
                         Image(systemName: "gear")
                     }
                 }
@@ -63,14 +65,28 @@ struct HomeView: View {
                     refreshID = UUID()
                 })
             }
-            .sheet(isPresented: $showingSettings) {
+            .sheet(isPresented: $settingsManager.isShowingSettings, onDismiss: {
+                print("🎛️ Impostazioni chiuse - reset preventivo")
+                settingsManager.closeSettings()
+            }) {
                 SettingsView()
                     .environmentObject(themeManager)
+                    .id(settingsManager.settingsViewKey)
+                    .onDisappear {
+                        // Reset aggiuntivo quando la vista scompare
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            settingsManager.resetSettingsState()
+                        }
+                    }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CarDataChanged"))) { _ in
                 print("📡 Ricevuta notifica CarDataChanged")
                 refreshID = UUID()
                 forceRefresh.toggle()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ForceSettingsReset"))) { _ in
+                print("📡 Reset forzato impostazioni richiesto")
+                settingsManager.resetSettingsState()
             }
         }
         .onAppear {
