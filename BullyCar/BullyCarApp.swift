@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreData
 
 @main
 struct BullyCarApp: App {
@@ -12,6 +13,32 @@ struct BullyCarApp: App {
                 .environmentObject(themeManager)
                 .preferredColorScheme(themeManager.colorScheme)
                 .environment(\.locale, Locale(identifier: "it_IT")) // Forza italiano globalmente
+                .onAppear {
+                    setupNotifications()
+                }
+        }
+    }
+    
+    private func setupNotifications() {
+        // Richiedi permessi per le notifiche
+        NotificationManager.shared.requestNotificationPermission()
+        
+        // Aggiorna le notifiche esistenti
+        updateAllNotifications()
+    }
+    
+    private func updateAllNotifications() {
+        let context = persistenceController.container.viewContext
+        let fetchRequest: NSFetchRequest<Car> = Car.fetchRequest()
+        
+        do {
+            let cars = try context.fetch(fetchRequest)
+            for car in cars {
+                NotificationManager.shared.updateNotifications(for: car)
+            }
+            print("✅ Notifiche aggiornate per \(cars.count) auto")
+        } catch {
+            print("❌ Errore aggiornamento notifiche: \(error)")
         }
     }
 }

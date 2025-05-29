@@ -702,20 +702,229 @@ struct DocumentRowView: View {
 
 struct RemindersTabView: View {
     @ObservedObject var car: Car
+    @State private var upcomingReminders: [ReminderInfo] = []
+    @State private var refreshID = UUID()
     
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "bell")
-                .font(.system(size: 40))
-                .foregroundColor(.gray)
+        VStack(spacing: 16) {
+            if upcomingReminders.isEmpty {
+                // Stato vuoto
+                VStack(spacing: 20) {
+                    Image(systemName: "bell.circle")
+                        .font(.system(size: 60))
+                        .foregroundColor(.gray)
+                    
+                    Text("Nessun promemoria attivo")
+                        .font(.headline)
+                    
+                    Text("I promemoria vengono creati automaticamente quando aggiungi interventi di manutenzione")
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                .padding(.vertical, 40)
+            } else {
+                // Header con statistiche
+                ReminderStatsView(reminders: upcomingReminders)
+                    .padding(.horizontal)
+                
+                // Lista promemoria
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(upcomingReminders) { reminderInfo in
+                            ReminderRowView(reminderInfo: reminderInfo)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+        }
+        .id(refreshID)
+        .onAppear {
+            loadReminders()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("MaintenanceDataChanged"))) { _ in
+            loadReminders()
+        }
+    }
+    
+    private func loadReminders() {
+        upcomingReminders = NotificationManager.shared.getUpcomingReminders(for: car, within: 365)
+        refreshID = UUID()
+        print("🔔 Caricati \(upcomingReminders.count) promemoria per \(car.name ?? "auto")")
+    }
+}
+
+// Vista statistiche promemoria
+struct ReminderStatsView: View {
+    let reminders: [ReminderInfo]
+    
+    var overdueCount: Int {
+        reminders.filter { $0.isDue }.count
+    }
+    
+    var urgentCount: Int {
+        reminders.filter { $0.urgencyLevel == .high && !$0.isDue }.count
+    }
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Promemoria scaduti
+            StatCard(
+                title: "Scaduti",
+                count: overdueCount,
+                color: .red,
+                icon: "exclamationmark.triangle.fill"
+            )
             
-            Text("Promemoria")
-                .font(.headline)
+            // Promemoria urgenti
+            StatCard(
+                title: "Urgenti",
+                count: urgentCount,
+                color: .orange,
+                icon: "clock.fill"
+            )
             
-            Text("Funzionalità promemoria in arrivo")
+            // Totale promemoria
+            StatCard(
+                title: "Totale",
+                count: reminders.count,
+                color: .blue,
+                icon: "bell.fill"
+            )
+        }
+    }
+}
+
+struct StatCard: View {
+    let title: String
+    let count: Int
+    let color: Color
+    let icon: String
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(color)
+            
+            Text("\(count)")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(color)
+            
+            Text(title)
+                .font(.caption)
                 .foregroundColor(.secondary)
         }
-        .padding(.vertical, 40)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(color.opacity(0.1))
+        .cornerRadius(12)
+    }
+}
+
+// Vista singolo promemoria
+struct ReminderRowView: View {
+    let reminderInfo: ReminderInfo
+    @State private var showingMaintenanceDetail = false
+    
+    var urgencyColor: Color {
+        switch reminderInfo.urgencyLevel {
+        case .overdue: return .red
+        case .high: return .orange
+        case .medium: return .yellow
+        case .low: return .green
+        }
+    }
+    
+    var urgencyText: String {
+        if reminderInfo.isDue {
+            return "Scaduto"
+        } else if let days = reminderInfo.daysUntilDue {
+            if days == 0 {
+                return "Oggi"
+            } else if days == 1 {
+                return "Domani"
+            } else {
+                return "Tra \(days) giorni"
+            }
+        } else {
+            return "Da verificare"
+        }
+    }
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Indicatore urgenza
+            Rectangle()
+                .fill(urgencyColor)
+                .frame(width: 4)
+                .cornerRadius(2)
+            
+            VStack(alignment: .leading, spacing: 6) {
+                // Tipo manutenzione con indicatore se è calcolato
+                HStack {
+                    Text(reminderInfo.maintenanceDisplayType)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    if reminderInfo.isCalculated {
+                        Text("previsto")
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.blue.opacity(0.2))
+                            .foregroundColor(.blue)
+                            .cornerRadius(4)
+                    }
+                }
+                
+                // Messaggio promemoria
+                Text(reminderInfo.message)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                
+                // Urgenza
+                HStack {
+                    Image(systemName: reminderInfo.isDue ? "exclamationmark.circle.fill" : "clock")
+                        .font(.caption)
+                        .foregroundColor(urgencyColor)
+                    
+                    Text(urgencyText)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(urgencyColor)
+                }
+            }
+            
+            Spacer()
+            
+            // Freccia
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(urgencyColor.opacity(0.3), lineWidth: reminderInfo.isDue ? 2 : 0)
+        )
+        .onTapGesture {
+            // Solo per promemoria reali (non calcolati)
+            if !reminderInfo.isCalculated {
+                showingMaintenanceDetail = true
+            }
+        }
+        .sheet(isPresented: $showingMaintenanceDetail) {
+            if !reminderInfo.isCalculated,
+               let realMaintenance = reminderInfo.maintenance as? Maintenance {
+                AddMaintenanceView(car: reminderInfo.car, maintenanceToEdit: realMaintenance)
+            }
+        }
     }
 }
 

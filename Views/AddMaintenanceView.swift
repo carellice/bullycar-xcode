@@ -327,6 +327,9 @@ struct AddMaintenanceView: View {
                 try viewContext.save()
                 print("✅ Manutenzione salvata")
                 
+                // Aggiorna le notifiche per questa auto
+                NotificationManager.shared.updateNotifications(for: car)
+                
                 // PRIMA chiudi la vista con animazione fluida
                 dismiss()
                 
