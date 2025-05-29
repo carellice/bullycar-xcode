@@ -26,14 +26,18 @@ class NotificationManager: ObservableObject {
     
     // Pianifica una notifica per un promemoria
     func scheduleNotification(for reminder: Reminder, maintenance: Maintenance, car: Car) {
+        // Ottieni i giorni di preavviso dalle impostazioni
+        let reminderDays = UserDefaults.standard.integer(forKey: "reminderDays")
+        let advanceDays = reminderDays > 0 ? reminderDays : 7 // Default 7 giorni se non impostato
+        
         let content = UNMutableNotificationContent()
         content.title = "Promemoria Manutenzione"
-        content.body = createNotificationMessage(for: reminder, maintenance: maintenance, car: car)
+        content.body = createNotificationMessage(for: reminder, maintenance: maintenance, car: car, advanceDays: advanceDays)
         content.sound = .default
         content.badge = 1
         
-        // Crea il trigger in base al tipo di promemoria
-        guard let trigger = createTrigger(for: reminder, car: car) else {
+        // Crea il trigger in base al tipo di promemoria CON preavviso
+        guard let trigger = createTrigger(for: reminder, car: car, advanceDays: advanceDays) else {
             print("⚠️ Impossibile creare trigger per promemoria")
             return
         }
@@ -45,7 +49,7 @@ class NotificationManager: ObservableObject {
             if let error = error {
                 print("❌ Errore pianificazione notifica: \(error)")
             } else {
-                print("✅ Notifica pianificata: \(identifier)")
+                print("✅ Notifica pianificata con \(advanceDays) giorni di preavviso: \(identifier)")
             }
         }
     }
@@ -67,6 +71,27 @@ class NotificationManager: ObservableObject {
         for maintenance in maintenances {
             if let reminder = maintenance.reminder {
                 scheduleNotification(for: reminder, maintenance: maintenance, car: car)
+            }
+        }
+    }
+    
+    // Debug: Mostra tutte le notifiche programmate
+    func logScheduledNotifications() {
+        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
+            DispatchQueue.main.async {
+                print("📱 Notifiche programmate: \(requests.count)")
+                for request in requests {
+                    if let trigger = request.trigger as? UNCalendarNotificationTrigger,
+                       let nextTriggerDate = trigger.nextTriggerDate() {
+                        let formatter = DateFormatter()
+                        formatter.locale = Locale(identifier: "it_IT")
+                        formatter.dateStyle = .medium
+                        formatter.timeStyle = .short
+                        
+                        print("📅 \(request.identifier): \(formatter.string(from: nextTriggerDate))")
+                        print("   Contenuto: \(request.content.body)")
+                    }
+                }
             }
         }
     }
@@ -239,21 +264,74 @@ class NotificationManager: ObservableObject {
     
     // MARK: - Private Methods
     
-    private func createTrigger(for reminder: Reminder, car: Car) -> UNNotificationTrigger? {
+    private func createTrigger(for reminder: Reminder, car: Car, advanceDays: Int) -> UNNotificationTrigger? {
         switch reminder.type {
         case "date":
-            guard let date = reminder.date, date > Date() else { return nil }
-            let dateComponents = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+            guard let originalDate = reminder.date else { return nil }
+            
+            // Calcola la data di notifica sottraendo i giorni di preavviso
+            let notificationDate = Calendar.current.date(byAdding: .day, value: -advanceDays, to: originalDate) ?? originalDate
+            
+            // Non inviare notifiche per date passate
+            guard notificationDate > Date() else {
+                print("⚠️ Data di notifica già passata: \(notificationDate)")
+                return nil
+            }
+            
+            // Imposta sempre alle 10:00 del mattino
+            let dateComponents = createMorningNotificationComponents(from: notificationDate)
+            print("📅 Notifica programmata per: \(dateComponents.day!)/\(dateComponents.month!)/\(dateComponents.year!) alle 10:00 (\(advanceDays) giorni prima di \(originalDate))")
+            return UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+            
+        case "interval":
+            // Per gli intervalli, calcola la data di scadenza e poi sottrai il preavviso
+            guard let maintenance = reminder.maintenance,
+                  let maintenanceDate = maintenance.date,
+                  reminder.intervalValue > 0,
+                  let unit = reminder.intervalUnit else { return nil }
+            
+            var dateComponent = DateComponents()
+            if unit == "months" {
+                dateComponent.month = Int(reminder.intervalValue)
+            } else if unit == "years" {
+                dateComponent.year = Int(reminder.intervalValue)
+            }
+            
+            guard let dueDate = Calendar.current.date(byAdding: dateComponent, to: maintenanceDate) else { return nil }
+            
+            // Sottrai i giorni di preavviso
+            let notificationDate = Calendar.current.date(byAdding: .day, value: -advanceDays, to: dueDate) ?? dueDate
+            
+            // Non inviare notifiche per date passate
+            guard notificationDate > Date() else {
+                print("⚠️ Data di notifica intervallo già passata: \(notificationDate)")
+                return nil
+            }
+            
+            // Imposta sempre alle 10:00 del mattino
+            let dateComponents = createMorningNotificationComponents(from: notificationDate)
+            print("📅 Notifica intervallo programmata per: \(dateComponents.day!)/\(dateComponents.month!)/\(dateComponents.year!) alle 10:00 (\(advanceDays) giorni prima di \(dueDate))")
             return UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
             
         case "mileage":
-            // Per il chilometraggio, creiamo una notifica che si attiva quando l'app viene aperta
+            // Per il chilometraggio, non possiamo fare preavvisi precisi
+            // La notifica si attiva quando l'app viene aperta e controlla i km
+            print("⚠️ Notifiche chilometraggio non supportate in background")
             return nil
             
         case "both":
-            // Usa la data se disponibile
-            guard let date = reminder.date, date > Date() else { return nil }
-            let dateComponents = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+            // Usa la data se disponibile, altrimenti il chilometraggio non è supportato
+            guard let originalDate = reminder.date else { return nil }
+            
+            let notificationDate = Calendar.current.date(byAdding: .day, value: -advanceDays, to: originalDate) ?? originalDate
+            
+            guard notificationDate > Date() else {
+                print("⚠️ Data di notifica 'both' già passata: \(notificationDate)")
+                return nil
+            }
+            
+            // Imposta sempre alle 10:00 del mattino
+            let dateComponents = createMorningNotificationComponents(from: notificationDate)
             return UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
             
         default:
@@ -261,20 +339,73 @@ class NotificationManager: ObservableObject {
         }
     }
     
-    private func createNotificationMessage(for reminder: Reminder, maintenance: Maintenance, car: Car) -> String {
+    // Crea i componenti per una notifica alle 10:00 del mattino
+    private func createMorningNotificationComponents(from date: Date) -> DateComponents {
+        var dateComponents = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        
+        // Imposta sempre alle 10:00 del mattino
+        dateComponents.hour = 10
+        dateComponents.minute = 0
+        dateComponents.second = 0
+        
+        return dateComponents
+    }
+    
+    private func createNotificationMessage(for reminder: Reminder, maintenance: Maintenance, car: Car, advanceDays: Int) -> String {
         let carName = car.name ?? "Auto"
         let maintenanceType = maintenance.displayType
         
         switch reminder.type {
         case "date":
-            return "È tempo di fare \(maintenanceType) per \(carName)"
+            if let date = reminder.date {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "it_IT")
+                formatter.dateStyle = .medium
+                
+                if advanceDays > 0 {
+                    return "Promemoria: \(maintenanceType) per \(carName) previsto tra \(advanceDays) giorni (\(formatter.string(from: date)))"
+                } else {
+                    return "È tempo di fare \(maintenanceType) per \(carName)"
+                }
+            }
+        case "interval":
+            if let maintenance = reminder.maintenance,
+               let maintenanceDate = maintenance.date,
+               reminder.intervalValue > 0,
+               let unit = reminder.intervalUnit {
+                
+                var dateComponent = DateComponents()
+                if unit == "months" {
+                    dateComponent.month = Int(reminder.intervalValue)
+                } else if unit == "years" {
+                    dateComponent.year = Int(reminder.intervalValue)
+                }
+                
+                if let dueDate = Calendar.current.date(byAdding: dateComponent, to: maintenanceDate) {
+                    let formatter = DateFormatter()
+                    formatter.locale = Locale(identifier: "it_IT")
+                    formatter.dateStyle = .medium
+                    
+                    if advanceDays > 0 {
+                        return "Promemoria: \(maintenanceType) per \(carName) previsto tra \(advanceDays) giorni (\(formatter.string(from: dueDate)))"
+                    } else {
+                        return "È tempo di fare \(maintenanceType) per \(carName)"
+                    }
+                }
+            }
         case "mileage":
             return "\(carName) ha raggiunto i \(reminder.mileage) km. È tempo di fare \(maintenanceType)"
         case "both":
-            return "È tempo di fare \(maintenanceType) per \(carName)"
+            if advanceDays > 0 {
+                return "Promemoria: \(maintenanceType) per \(carName) in scadenza tra \(advanceDays) giorni"
+            } else {
+                return "È tempo di fare \(maintenanceType) per \(carName)"
+            }
         default:
-            return "Promemoria manutenzione per \(carName)"
+            break
         }
+        
+        return "Promemoria manutenzione per \(carName)"
     }
     
     private func createReminderMessage(for reminder: Reminder, maintenance: Maintenance) -> String {
@@ -485,9 +616,9 @@ struct ReminderInfo: Identifiable {
     var urgencyLevel: UrgencyLevel {
         if isDue { return .overdue }
         guard let days = daysUntilDue else { return .low }
-        if days <= 7 { return .high }
-        if days <= 30 { return .medium }
-        return .low
+        if days <= 30 { return .high }      // Urgenti: 1-30 giorni
+        if days <= 90 { return .medium }    // Medi: 31-90 giorni
+        return .low                         // Bassi: oltre 90 giorni
     }
     
     var urgencyColor: String {

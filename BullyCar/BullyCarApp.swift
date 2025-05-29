@@ -37,6 +37,11 @@ struct BullyCarApp: App {
                 NotificationManager.shared.updateNotifications(for: car)
             }
             print("✅ Notifiche aggiornate per \(cars.count) auto")
+            
+            // Debug: mostra le notifiche programmate
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                NotificationManager.shared.logScheduledNotifications()
+            }
         } catch {
             print("❌ Errore aggiornamento notifiche: \(error)")
         }
