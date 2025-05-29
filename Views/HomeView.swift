@@ -172,6 +172,10 @@ struct CarListView: View {
 // Card per singola auto
 struct CarCardView: View {
     @ObservedObject var car: Car
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var showingEditCar = false
+    @State private var showingDeleteAlert = false
+    @State private var showingCopyFeedback = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -238,6 +242,120 @@ struct CarCardView: View {
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+        .contextMenu {
+            // Context menu con pressione lunga
+            Button(action: { copyPlateNumber() }) {
+                Label("Copia targa", systemImage: "doc.on.doc")
+            }
+            
+            Button(action: { showingEditCar = true }) {
+                Label("Modifica", systemImage: "pencil")
+            }
+            
+            Divider()
+            
+            Button(role: .destructive, action: { showingDeleteAlert = true }) {
+                Label("Elimina", systemImage: "trash")
+            }
+        }
+        .sheet(isPresented: $showingEditCar) {
+            AddCarView(carToEdit: car, onSave: {
+                showingEditCar = false
+                // Invia notifica per refresh
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("CarDataChanged"),
+                    object: nil
+                )
+            })
+        }
+        .alert("Elimina auto", isPresented: $showingDeleteAlert) {
+            Button("Annulla", role: .cancel) { }
+            Button("Elimina", role: .destructive) {
+                deleteCar()
+            }
+        } message: {
+            Text("Sei sicuro di voler eliminare \(car.name ?? "questa auto")? Questa azione non può essere annullata.")
+        }
+        // Toast per feedback copia targa
+        .overlay(
+            copyFeedbackToast,
+            alignment: .topTrailing
+        )
+    }
+    
+    // Toast di feedback per la copia targa
+    var copyFeedbackToast: some View {
+        Group {
+            if showingCopyFeedback {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.caption)
+                    
+                    Text("Copiata")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 15)
+                        .fill(Color(UIColor.systemBackground))
+                        .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                )
+                .padding(.top, 8)
+                .padding(.trailing, 8)
+                .transition(.asymmetric(
+                    insertion: .scale.combined(with: .opacity),
+                    removal: .scale.combined(with: .opacity)
+                ))
+            }
+        }
+    }
+    
+    private func copyPlateNumber() {
+        guard let plate = car.plate, !plate.isEmpty else { return }
+        
+        // Copia negli appunti
+        UIPasteboard.general.string = plate
+        
+        // Mostra feedback
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            showingCopyFeedback = true
+        }
+        
+        // Nascondi feedback dopo 1.5 secondi
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                showingCopyFeedback = false
+            }
+        }
+        
+        // Feedback aptico
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.impactOccurred()
+        
+        print("📋 Targa copiata dalla HomeView: \(plate)")
+    }
+    
+    private func deleteCar() {
+        withAnimation {
+            viewContext.delete(car)
+            
+            do {
+                try viewContext.save()
+                
+                // Invia notifica per refresh
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("CarDataChanged"),
+                    object: nil
+                )
+                
+                print("✅ Auto eliminata dalla HomeView")
+            } catch {
+                print("❌ Errore eliminazione auto: \(error)")
+            }
+        }
     }
 }
 
