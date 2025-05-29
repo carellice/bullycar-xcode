@@ -32,7 +32,7 @@ struct HomeView: View {
                     }
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 160))], spacing: 16) {
+                        LazyVStack(spacing: 16) { // Cambiato da LazyVGrid a LazyVStack
                             ForEach(cars) { car in
                                 NavigationLink(destination: CarDetailView(car: car)) {
                                     CarCardView(car: car)
@@ -169,7 +169,7 @@ struct CarListView: View {
     }
 }
 
-// Card per singola auto
+// Card per singola auto - Layout orizzontale per una card per riga
 struct CarCardView: View {
     @ObservedObject var car: Car
     @Environment(\.managedObjectContext) private var viewContext
@@ -178,67 +178,77 @@ struct CarCardView: View {
     @State private var showingCopyFeedback = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Immagine auto
+        HStack(spacing: 16) {
+            // Immagine auto (più piccola a sinistra)
             ZStack {
                 if let imageData = car.imageData,
                    let uiImage = UIImage(data: imageData) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(height: 120)
+                        .frame(width: 80, height: 80)
                         .clipped()
+                        .cornerRadius(10)
                 } else {
                     Rectangle()
                         .fill(Color.gray.opacity(0.2))
-                        .frame(height: 120)
+                        .frame(width: 80, height: 80)
+                        .cornerRadius(10)
                         .overlay(
                             Image(systemName: "car.fill")
-                                .font(.system(size: 40))
+                                .font(.system(size: 24))
                                 .foregroundColor(.gray)
                         )
                 }
             }
             
-            // Info auto
-            VStack(alignment: .leading, spacing: 4) {
-                Text(car.name ?? "")
-                    .font(.headline)
-                    .lineLimit(1)
-                
-                Text(car.plate ?? "")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
+            // Info auto (a destra dell'immagine)
+            VStack(alignment: .leading, spacing: 6) {
+                // Nome e targa (riga principale)
                 HStack {
-                    Text("\(car.brand ?? "") \(car.model ?? "")")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(car.name ?? "")
+                            .font(.headline)
+                            .lineLimit(1)
+                        
+                        Text(car.plate ?? "")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                            .fontWeight(.medium)
+                    }
                     
                     Spacer()
-                    
-                    Text("\(car.mileage) km")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
                 }
                 
-                // Anteprima note se presenti
+                // Marca, modello e anno
+                Text("\(car.brand ?? "") \(car.model ?? "") • \(String(car.year))")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                
+                // Chilometraggio (spostato qui)
+                Text("\(car.mileage) km")
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                    .fontWeight(.medium)
+                
+                // Note (se presenti)
                 if let notes = car.notes, !notes.isEmpty {
                     HStack(spacing: 4) {
                         Image(systemName: "note.text")
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundColor(.orange)
                         
                         Text(notes)
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
                 }
             }
-            .padding(12)
         }
+        .padding(16)
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
