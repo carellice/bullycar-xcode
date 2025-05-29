@@ -371,6 +371,9 @@ struct DocumentsTabView: View {
     @State private var showingImagePicker = false
     @State private var imageSourceType: UIImagePickerController.SourceType = .photoLibrary
     @State private var showingActionSheet = false
+    @State private var showingNameDialog = false
+    @State private var pendingDocumentData: (data: Data, type: String, originalName: String)?
+    @State private var documentName = ""
     @Environment(\.managedObjectContext) private var viewContext
     
     var documents: [Document] {
@@ -437,53 +440,79 @@ struct DocumentsTabView: View {
         .sheet(isPresented: $showingImagePicker) {
             ImagePicker(image: .constant(nil), sourceType: imageSourceType) { image in
                 if let image = image {
-                    saveImageAsDocument(image)
+                    handleImageSelection(image)
                 }
             }
         }
         .sheet(isPresented: $showingDocumentPicker) {
             DocumentPicker { url in
-                saveDocumentFromURL(url)
+                handleDocumentSelection(url)
             }
+        }
+        .alert("Nome documento", isPresented: $showingNameDialog) {
+            TextField("Nome documento", text: $documentName)
+                .textInputAutocapitalization(.words)
+            
+            Button("Annulla", role: .cancel) {
+                pendingDocumentData = nil
+                documentName = ""
+            }
+            
+            Button("Salva") {
+                saveDocumentWithName()
+            }
+            .disabled(documentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            
+        } message: {
+            Text("Inserisci un nome per il documento")
         }
     }
     
-    private func saveImageAsDocument(_ image: UIImage) {
+    private func handleImageSelection(_ image: UIImage) {
         guard let imageData = image.jpegData(compressionQuality: 0.8) else { return }
+        
+        let defaultName = "Foto_\(Date().formatted(date: .abbreviated, time: .omitted))"
+        pendingDocumentData = (data: imageData, type: "image/jpeg", originalName: defaultName)
+        documentName = defaultName
+        showingNameDialog = true
+    }
+    
+    private func handleDocumentSelection(_ url: URL) {
+        do {
+            let data = try Data(contentsOf: url)
+            let fileName = url.deletingPathExtension().lastPathComponent
+            let fileType = url.pathExtension == "pdf" ? "application/pdf" : "application/octet-stream"
+            
+            pendingDocumentData = (data: data, type: fileType, originalName: fileName)
+            documentName = fileName
+            showingNameDialog = true
+        } catch {
+            print("Errore lettura documento: \(error)")
+        }
+    }
+    
+    private func saveDocumentWithName() {
+        guard let documentData = pendingDocumentData else { return }
         
         let document = Document(context: viewContext)
         document.id = UUID()
-        document.name = "Foto_\(Date().formatted(date: .abbreviated, time: .omitted))"
-        document.type = "image/jpeg"
-        document.size = Int64(imageData.count)
-        document.data = imageData
+        document.name = documentName.trimmingCharacters(in: .whitespacesAndNewlines)
+        document.type = documentData.type
+        document.size = Int64(documentData.data.count)
+        document.data = documentData.data
         document.dateAdded = Date()
         document.car = car
         
         do {
             try viewContext.save()
+            print("✅ Documento salvato con nome: \(document.name ?? "")")
         } catch {
-            print("Errore salvataggio documento: \(error)")
+            print("❌ Errore salvataggio documento: \(error)")
         }
-    }
-    
-    private func saveDocumentFromURL(_ url: URL) {
-        do {
-            let data = try Data(contentsOf: url)
-            
-            let document = Document(context: viewContext)
-            document.id = UUID()
-            document.name = url.lastPathComponent
-            document.type = url.pathExtension == "pdf" ? "application/pdf" : "application/octet-stream"
-            document.size = Int64(data.count)
-            document.data = data
-            document.dateAdded = Date()
-            document.car = car
-            
-            try viewContext.save()
-        } catch {
-            print("Errore importazione documento: \(error)")
-        }
+        
+        // Reset
+        pendingDocumentData = nil
+        documentName = ""
     }
 }
 
@@ -491,6 +520,8 @@ struct DocumentRowView: View {
     let document: Document
     @State private var showingDeleteAlert = false
     @State private var showingDocument = false
+    @State private var showingRenameDialog = false
+    @State private var newDocumentName = ""
     @Environment(\.managedObjectContext) private var viewContext
     
     var fileIcon: String {
@@ -540,11 +571,24 @@ struct DocumentRowView: View {
             
             Spacer()
             
-            Button(action: { showingDeleteAlert = true }) {
-                Image(systemName: "trash")
-                    .foregroundColor(.red)
+            Menu {
+                Button(action: {
+                    newDocumentName = document.name ?? ""
+                    showingRenameDialog = true
+                }) {
+                    Label("Rinomina", systemImage: "pencil")
+                }
+                
+                Divider()
+                
+                Button(role: .destructive, action: { showingDeleteAlert = true }) {
+                    Label("Elimina", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
             }
-            .buttonStyle(PlainButtonStyle())
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
@@ -560,6 +604,22 @@ struct DocumentRowView: View {
         } message: {
             Text("Sei sicuro di voler eliminare questo documento?")
         }
+        .alert("Rinomina documento", isPresented: $showingRenameDialog) {
+            TextField("Nome documento", text: $newDocumentName)
+                .textInputAutocapitalization(.words)
+            
+            Button("Annulla", role: .cancel) {
+                newDocumentName = ""
+            }
+            
+            Button("Salva") {
+                renameDocument()
+            }
+            .disabled(newDocumentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            
+        } message: {
+            Text("Inserisci il nuovo nome per il documento")
+        }
         .sheet(isPresented: $showingDocument) {
             DocumentViewerView(document: document)
         }
@@ -570,9 +630,26 @@ struct DocumentRowView: View {
         
         do {
             try viewContext.save()
+            print("✅ Documento eliminato")
         } catch {
-            print("Errore eliminazione documento: \(error)")
+            print("❌ Errore eliminazione documento: \(error)")
         }
+    }
+    
+    private func renameDocument() {
+        let trimmedName = newDocumentName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        
+        document.name = trimmedName
+        
+        do {
+            try viewContext.save()
+            print("✅ Documento rinominato in: \(trimmedName)")
+        } catch {
+            print("❌ Errore rinomina documento: \(error)")
+        }
+        
+        newDocumentName = ""
     }
 }
 
