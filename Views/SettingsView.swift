@@ -387,11 +387,18 @@ struct DocumentImporter: View {
                 }
                 
                 if let success = successMessage {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text(success)
-                            .foregroundColor(.green)
+                    VStack(spacing: 16) {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text(success)
+                                .foregroundColor(.green)
+                        }
+                        
+                        Button("Chiudi") {
+                            dismiss()
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
                     .padding()
                 }
@@ -469,10 +476,8 @@ struct DocumentImporter: View {
                         object: nil
                     )
                     
-                    // Chiudi dopo 2 secondi
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        dismiss()
-                    }
+                    // Non chiudiamo automaticamente - lasciamo che l'utente veda il messaggio
+                    // e chiuda manualmente le impostazioni
                 }
             } catch {
                 print("❌ Errore durante l'importazione: \(error)")
