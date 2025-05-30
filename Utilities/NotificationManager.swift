@@ -106,12 +106,13 @@ class NotificationManager: ObservableObject {
         }
     }
     
-    // Ottieni i promemoria in scadenza e calcola i prossimi interventi
+    // Ottieni i promemoria in scadenza - SOLO quelli esplicitamente impostati dall'utente
     func getUpcomingReminders(for car: Car, within days: Int = 365) -> [ReminderInfo] {
         var upcomingReminders: [ReminderInfo] = []
         
-        // 1. TUTTI i promemoria espliciti (con date/km impostati dall'utente)
+        // SOLO i promemoria espliciti (con date/km impostati dall'utente)
         for maintenance in car.maintenanceArray {
+            // Verifica che la manutenzione abbia effettivamente un promemoria
             if let reminder = maintenance.reminder {
                 let daysUntil = calculateDaysUntilDue(reminder: reminder, car: car)
                 let isDue = isReminderDue(reminder: reminder, car: car)
@@ -126,17 +127,13 @@ class NotificationManager: ObservableObject {
                     isCalculated: false
                 )
                 
-                // Mostra tutti i promemoria espliciti entro il periodo o se scaduti
+                // Mostra solo i promemoria espliciti entro il periodo o se scaduti
                 if isDue || (daysUntil ?? Int.max) <= days || (daysUntil ?? 0) > -90 {
                     upcomingReminders.append(reminderInfo)
                     print("✅ Aggiunto promemoria esplicito: \(maintenance.displayType), giorni: \(daysUntil ?? 0)")
                 }
             }
         }
-        
-        // 2. Calcola i prossimi interventi SOLO per tipi già esistenti senza promemoria esplicito
-        let calculatedReminders = calculateNextMaintenanceIntervals(for: car, within: days, existingReminders: upcomingReminders)
-        upcomingReminders.append(contentsOf: calculatedReminders)
         
         print("📊 Totale promemoria trovati: \(upcomingReminders.count)")
         
@@ -151,98 +148,6 @@ class NotificationManager: ObservableObject {
             
             return days1 < days2
         }
-    }
-    
-    // Calcola i prossimi interventi SOLO per tipi già esistenti
-    private func calculateNextMaintenanceIntervals(for car: Car, within days: Int, existingReminders: [ReminderInfo]) -> [ReminderInfo] {
-        var calculatedReminders: [ReminderInfo] = []
-        
-        // Trova tutti i tipi di manutenzione già fatti
-        let performedMaintenanceTypes = Set(car.maintenanceArray.compactMap { $0.type })
-        
-        // Trova i tipi che hanno già un promemoria esplicito
-        let typesWithExplicitReminders = Set(existingReminders.compactMap { $0.maintenanceType })
-        
-        // Calcola promemoria solo per tipi già eseguiti ma senza promemoria esplicito
-        for type in performedMaintenanceTypes {
-            if !typesWithExplicitReminders.contains(type) {
-                if let nextReminder = calculateNextMaintenanceForType(type, car: car, within: days) {
-                    calculatedReminders.append(nextReminder)
-                }
-            }
-        }
-        
-        return calculatedReminders
-    }
-    
-    private func calculateNextMaintenanceForType(_ type: String, car: Car, within days: Int) -> ReminderInfo? {
-        // Trova tutte le manutenzioni di questo tipo
-        let maintenancesOfType = car.maintenanceArray.filter { $0.type == type }
-        guard !maintenancesOfType.isEmpty else {
-            return nil // Non creare più promemoria per tipi mai eseguiti
-        }
-        
-        // Ordina per data
-        let sortedMaintenances = maintenancesOfType.sorted {
-            ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast)
-        }
-        
-        guard let lastMaintenance = sortedMaintenances.last,
-              let lastDate = lastMaintenance.date else { return nil }
-        
-        // Calcola l'intervallo medio se ci sono multiple manutenzioni
-        var averageInterval: TimeInterval = 0
-        if sortedMaintenances.count > 1 {
-            var totalInterval: TimeInterval = 0
-            for i in 1..<sortedMaintenances.count {
-                if let prevDate = sortedMaintenances[i-1].date,
-                   let currDate = sortedMaintenances[i].date {
-                    totalInterval += currDate.timeIntervalSince(prevDate)
-                }
-            }
-            averageInterval = totalInterval / Double(sortedMaintenances.count - 1)
-        }
-        
-        // Se non c'è un pattern, usa intervalli standard
-        if averageInterval == 0 {
-            averageInterval = getStandardInterval(for: type)
-        }
-        
-        // Calcola la prossima data
-        let nextDate = lastDate.addingTimeInterval(averageInterval)
-        
-        // Verifica se è entro il periodo richiesto
-        let daysUntilNext = Calendar.current.dateComponents([.day], from: Date(), to: nextDate).day ?? 0
-        guard daysUntilNext <= days && daysUntilNext > -30 else { return nil }
-        
-        // Crea un reminder calcolato SENZA Core Data
-        let calculatedReminderData = CalculatedReminderData(
-            type: "date",
-            date: nextDate,
-            mileage: 0,
-            intervalValue: 0,
-            intervalUnit: nil
-        )
-        
-        // Crea una manutenzione calcolata SENZA Core Data
-        let futureMaintenanceData = CalculatedMaintenanceData(
-            type: type,
-            customType: nil,
-            date: nextDate,
-            mileage: 0,
-            cost: 0.0,
-            notes: nil
-        )
-        
-        return ReminderInfo(
-            reminder: calculatedReminderData,
-            maintenance: futureMaintenanceData,
-            car: car,
-            daysUntilDue: daysUntilNext,
-            isDue: daysUntilNext <= 0,
-            message: createCalculatedReminderMessage(type: type, date: nextDate, daysUntil: daysUntilNext),
-            isCalculated: true
-        )
     }
     
     private func getStandardInterval(for type: String) -> TimeInterval {
