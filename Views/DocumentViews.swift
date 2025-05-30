@@ -7,9 +7,21 @@ struct DocumentPicker: UIViewControllerRepresentable {
     @Environment(\.dismiss) private var dismiss
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.pdf, .image, .text])
+        // Usa più tipi di file per compatibilità
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [
+            .pdf,
+            .image,
+            .text,
+            .data, // Tipo generico per file non riconosciuti
+            UTType(filenameExtension: "pdf")! // Backup per PDF
+        ])
+        
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false
+        picker.shouldShowFileExtensions = true
+        
+        print("📁 DocumentPicker inizializzato con tipi: PDF, immagini, testo, dati generici")
+        
         return picker
     }
     
@@ -27,12 +39,56 @@ struct DocumentPicker: UIViewControllerRepresentable {
         }
         
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            guard let url = urls.first else { return }
-            parent.completion(url)
+            guard let url = urls.first else {
+                print("❌ Nessun URL selezionato")
+                return
+            }
+            
+            print("📄 File selezionato: \(url.lastPathComponent)")
+            print("📄 Dimensione path: \(url.path)")
+            print("📄 Estensione: \(url.pathExtension)")
+            print("📄 Security scoped: \(url.startAccessingSecurityScopedResource())")
+            
+            // Verifica che il file esista e sia accessibile
+            do {
+                let fileAttributes = try FileManager.default.attributesOfItem(atPath: url.path)
+                let fileSize = fileAttributes[.size] as? Int64 ?? 0
+                print("📄 Dimensione file: \(fileSize) bytes (\(fileSize / 1024) KB)")
+                
+                // Verifica limite dimensione (10MB)
+                if fileSize > 10 * 1024 * 1024 {
+                    print("⚠️ File troppo grande: \(fileSize / 1024 / 1024) MB")
+                }
+                
+                // Verifica che il file sia leggibile
+                let testData = try Data(contentsOf: url)
+                print("✅ File leggibile: \(testData.count) bytes letti")
+                
+                parent.completion(url)
+                
+            } catch {
+                print("❌ Errore accesso file: \(error)")
+                print("❌ Dettagli errore: \(error.localizedDescription)")
+                
+                // Prova con security scoped resource
+                if url.startAccessingSecurityScopedResource() {
+                    defer { url.stopAccessingSecurityScopedResource() }
+                    
+                    do {
+                        let testData = try Data(contentsOf: url)
+                        print("✅ File leggibile con security scope: \(testData.count) bytes")
+                        parent.completion(url)
+                    } catch {
+                        print("❌ Errore anche con security scope: \(error)")
+                    }
+                }
+            }
+            
             parent.dismiss()
         }
         
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            print("📄 Selezione file annullata")
             parent.dismiss()
         }
     }
