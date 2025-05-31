@@ -934,97 +934,416 @@ struct NotesTabView: View {
     @State private var tempNotes = ""
     @Environment(\.managedObjectContext) private var viewContext
     @FocusState private var isTextEditorFocused: Bool
+    @State private var showingSaveAnimation = false
     
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
             if let notes = car.notes, !notes.isEmpty, !isEditing {
-                // Mostra note esistenti
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Le mie note")
-                            .font(.headline)
-                        
-                        Spacer()
-                        
-                        Button("Modifica") {
-                            tempNotes = notes
-                            isEditing = true
-                        }
-                        .foregroundColor(.blue)
-                    }
-                    
-                    Text(notes)
-                        .font(.body)
-                        .textSelection(.enabled)
-                }
-                .padding()
-                .background(Color(UIColor.secondarySystemGroupedBackground))
-                .cornerRadius(12)
-                .padding(.horizontal)
+                // Vista di lettura delle note esistenti
+                notesReadView(notes: notes)
             } else if isEditing {
-                // Modalità modifica
-                VStack {
-                    HStack {
-                        Button("Annulla") {
-                            isEditing = false
-                            tempNotes = ""
-                        }
-                        .foregroundColor(.red)
-                        
-                        Spacer()
-                        
-                        Button("Salva") {
-                            saveNotes()
-                        }
-                        .foregroundColor(.blue)
-                        .disabled(tempNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-                    .padding()
-                    
-                    TextEditor(text: $tempNotes)
-                        .focused($isTextEditorFocused)
-                        .frame(minHeight: 200)
-                        .padding()
-                        .background(Color(UIColor.systemBackground))
-                        .cornerRadius(12)
-                        .padding(.horizontal)
-                }
-                .onAppear {
-                    isTextEditorFocused = true
-                }
+                // Vista di modifica
+                notesEditView
             } else {
                 // Stato vuoto
-                VStack(spacing: 20) {
-                    Image(systemName: "note.text")
-                        .font(.system(size: 40))
-                        .foregroundColor(.gray)
-                    
-                    Text("Nessuna nota")
-                        .font(.headline)
-                    
-                    Text("Aggiungi note per ricordare informazioni importanti")
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                    
-                    Button("Aggiungi note") {
-                        tempNotes = ""
-                        isEditing = true
+                notesEmptyView
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: isEditing)
+        .overlay(
+            // Animazione di salvataggio
+            saveSuccessOverlay,
+            alignment: .top
+        )
+    }
+    
+    // MARK: - Vista lettura note
+    private func notesReadView(notes: String) -> some View {
+        VStack(spacing: 0) {
+            // Header
+            VStack(spacing: 16) {
+                HStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "note.text.badge.plus")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                        
+                        Text("Le mie note")
+                            .font(.title2)
+                            .fontWeight(.semibold)
                     }
-                    .buttonStyle(.borderedProminent)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        tempNotes = notes
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                            isEditing = true
+                        }
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            isTextEditorFocused = true
+                        }
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "pencil")
+                                .font(.caption)
+                            Text("Modifica")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color.blue)
+                        )
+                    }
                 }
-                .padding(.vertical, 40)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                
+                // Divider decorativo
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [.blue.opacity(0.3), .blue.opacity(0.1), .clear],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 1)
+                    .padding(.horizontal, 20)
+            }
+            
+            // Contenuto note
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(notes)
+                        .font(.body)
+                        .lineSpacing(4)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(UIColor.secondarySystemGroupedBackground))
+                                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+                        )
+                    
+                    // Info sulla data di ultima modifica (opzionale)
+                    HStack {
+                        Image(systemName: "clock")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Text("Ultima modifica: oggi")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Text("\(notes.count) caratteri")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                }
             }
         }
     }
     
+    // MARK: - Vista modifica
+    private var notesEditView: some View {
+        VStack(spacing: 0) {
+            // Header modifica
+            VStack(spacing: 16) {
+                HStack {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                            isEditing = false
+                        }
+                        tempNotes = ""
+                        isTextEditorFocused = false
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "xmark")
+                                .font(.caption)
+                            Text("Annulla")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color.red)
+                        )
+                    }
+                    
+                    Spacer()
+                    
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.and.pencil")
+                            .font(.title2)
+                            .foregroundColor(.green)
+                        
+                        Text("Modifica note")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        saveNotes()
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark")
+                                .font(.caption)
+                            Text("Salva")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(tempNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.green)
+                        )
+                    }
+                    .disabled(tempNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                
+                // Info caratteri
+                HStack {
+                    Text("\(tempNotes.count) caratteri")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    if tempNotes.count > 500 {
+                        Text("Note lunghe")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
+                .padding(.horizontal, 20)
+                
+                // Divider
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [.green.opacity(0.3), .green.opacity(0.1), .clear],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 1)
+                    .padding(.horizontal, 20)
+            }
+            
+            // Editor di testo
+            VStack(spacing: 12) {
+                TextEditor(text: $tempNotes)
+                    .focused($isTextEditorFocused)
+                    .font(.body)
+                    .lineSpacing(4)
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(UIColor.systemBackground))
+                            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(isTextEditorFocused ? Color.green : Color.gray.opacity(0.3), lineWidth: 2)
+                            .animation(.easeInOut(duration: 0.2), value: isTextEditorFocused)
+                    )
+                    .frame(minHeight: 200)
+                    .padding(.horizontal, 20)
+                
+                // Suggerimenti rapidi
+                if tempNotes.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("💡 Idee per le tue note:")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            quickSuggestionButton("• Problemi riscontrati")
+                            quickSuggestionButton("• Modifiche effettuate")
+                            quickSuggestionButton("• Promemoria personali")
+                            quickSuggestionButton("• Accessori aggiunti")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.blue.opacity(0.05))
+                    )
+                    .padding(.horizontal, 20)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .padding(.bottom, 20)
+        }
+    }
+    
+    // MARK: - Vista stato vuoto
+    private var notesEmptyView: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            // Icona animata
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [.blue.opacity(0.1), .blue.opacity(0.05)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 100, height: 100)
+                
+                Image(systemName: "note.text.badge.plus")
+                    .font(.system(size: 40, weight: .light))
+                    .foregroundColor(.blue)
+            }
+            
+            VStack(spacing: 12) {
+                Text("Nessuna nota")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                
+                Text("Aggiungi note personali per ricordare\ninformazioni importanti su questa auto")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+            }
+            
+            Button(action: {
+                tempNotes = ""
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    isEditing = true
+                }
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    isTextEditorFocused = true
+                }
+            }) {
+                HStack(spacing: 10) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                    
+                    Text("Aggiungi le tue note")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 25)
+                        .fill(
+                            LinearGradient(
+                                colors: [.blue, .blue.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+            }
+            .scaleEffect(1.0)
+            .animation(.spring(response: 0.4, dampingFraction: 0.6), value: isEditing)
+            
+            Spacer()
+        }
+        .padding(.horizontal, 32)
+    }
+    
+    // MARK: - Componenti di supporto
+    private func quickSuggestionButton(_ text: String) -> some View {
+        Button(action: {
+            if !tempNotes.isEmpty {
+                tempNotes += "\n"
+            }
+            tempNotes += text
+        }) {
+            Text(text)
+                .font(.caption)
+                .foregroundColor(.blue)
+        }
+    }
+    
+    private var saveSuccessOverlay: some View {
+        Group {
+            if showingSaveAnimation {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.title3)
+                    
+                    Text("Note salvate")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 25)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                )
+                .padding(.top, 16)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .top).combined(with: .opacity).combined(with: .scale(scale: 0.8)),
+                    removal: .move(edge: .top).combined(with: .opacity)
+                ))
+            }
+        }
+    }
+    
+    // MARK: - Funzioni
     private func saveNotes() {
         let trimmedNotes = tempNotes.trimmingCharacters(in: .whitespacesAndNewlines)
         car.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
         
         do {
             try viewContext.save()
-            isEditing = false
+            
+            // Mostra animazione di successo
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                showingSaveAnimation = true
+                isEditing = false
+            }
+            
+            // Nascondi l'animazione dopo 2 secondi
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    showingSaveAnimation = false
+                }
+            }
+            
             tempNotes = ""
+            isTextEditorFocused = false
         } catch {
             print("Errore salvataggio note: \(error)")
         }
