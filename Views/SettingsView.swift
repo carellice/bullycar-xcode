@@ -183,13 +183,25 @@ struct SettingsView: View {
             try viewContext.save()
             viewContext.reset()
             
+            // Notifica eliminazione dati PRIMA di chiudere
             NotificationCenter.default.post(
-                name: NSNotification.Name("CarDataChanged"),
+                name: NSNotification.Name("DataDeleted"),
                 object: nil
             )
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                dismiss()
+            print("✅ Tutti i dati eliminati con successo")
+            
+            // Chiudi le impostazioni con delay per permettere il reset
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.dismiss()
+                
+                // Notifica aggiuntiva per refresh
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("CarDataChanged"),
+                        object: nil
+                    )
+                }
             }
             
         } catch {
@@ -303,7 +315,6 @@ struct DocumentImporter: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingFilePicker = false
     @State private var isImporting = false
-    @State private var isImportInProgress = false
     @State private var successMessage: String?
     @State private var errorMessage: String?
     
@@ -385,7 +396,7 @@ struct DocumentImporter: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Chiudi") {
-                        if !isImportInProgress {
+                        if !isImporting {
                             dismiss()
                         }
                     }
@@ -400,8 +411,9 @@ struct DocumentImporter: View {
     }
     
     private func importData(from url: URL) {
+        print("📥 Iniziando importazione da: \(url.lastPathComponent)")
+        
         isImporting = true
-        isImportInProgress = true
         errorMessage = nil
         successMessage = nil
         
@@ -423,52 +435,64 @@ struct DocumentImporter: View {
                 try BackupManager.importData(data, to: viewContext)
                 
                 DispatchQueue.main.async {
+                    print("✅ Importazione completata con successo")
                     self.isImporting = false
                     self.successMessage = "Backup importato con successo!"
-                    
-                    // Notifica completamento importazione (con delay)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        NotificationCenter.default.post(
-                            name: NSNotification.Name("CarDataChanged"),
-                            object: nil
-                        )
-                        
-                        // Notifica completamento importazione
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            NotificationCenter.default.post(
-                                name: NSNotification.Name("ImportCompleted"),
-                                object: nil
-                            )
-                        }
-                    }
                 }
+                
             } catch {
                 DispatchQueue.main.async {
+                    print("❌ Errore importazione: \(error)")
                     self.isImporting = false
-                    self.isImportInProgress = false
                     self.errorMessage = "Errore importazione: \(error.localizedDescription)"
+                    
+                    // Sblocca il sistema anche in caso di errore
+                    self.resetSystemState()
                 }
             }
         }
     }
     
     private func handleSuccessfulImport() {
-        // Segnala completamento processo
-        isImportInProgress = false
+        print("🎯 Gestendo completamento importazione")
         
-        // Chiudi l'importer
+        // Chiudi immediatamente l'importer
         dismiss()
         
-        // Notifica finale per reset completo
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        // Esegui il reset del sistema con sequenza ottimizzata
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            self.resetSystemState()
+        }
+    }
+    
+    private func resetSystemState() {
+        print("🔄 Resettando stato del sistema post-importazione")
+        
+        // Sequenza ottimizzata di notifiche
+        NotificationCenter.default.post(
+            name: NSNotification.Name("CarDataChanged"),
+            object: nil
+        )
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ImportCompleted"),
+                object: nil
+            )
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             NotificationCenter.default.post(
                 name: NSNotification.Name("ForceSettingsReset"),
                 object: nil
             )
         }
+        
+        print("✅ Reset sistema completato")
     }
     
     private func deleteAllLocalData() {
+        print("🗑️ Eliminando dati locali per importazione")
         do {
             let carRequest: NSFetchRequest<Car> = Car.fetchRequest()
             let cars = try viewContext.fetch(carRequest)
@@ -479,6 +503,7 @@ struct DocumentImporter: View {
             
             try viewContext.save()
             viewContext.reset()
+            print("✅ Dati locali eliminati")
         } catch {
             print("❌ Errore eliminazione dati locali: \(error)")
         }

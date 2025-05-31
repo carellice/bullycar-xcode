@@ -7,57 +7,68 @@ class SettingsStateManager: ObservableObject {
     @Published var settingsViewKey = UUID()
     
     private var cancellables = Set<AnyCancellable>()
-    private var isImportInProgress = false
+    private var isOperationInProgress = false
     
     init() {
         setupNotificationListeners()
     }
     
     private func setupNotificationListeners() {
+        // Listener per inizio importazione
+        NotificationCenter.default.publisher(for: NSNotification.Name("ImportStarted"))
+            .sink { [weak self] _ in
+                print("📡 Importazione iniziata - bloccando operazioni")
+                self?.isOperationInProgress = true
+            }
+            .store(in: &cancellables)
+        
         // Listener per completamento importazione
         NotificationCenter.default.publisher(for: NSNotification.Name("ImportCompleted"))
-            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .debounce(for: .milliseconds(100), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                print("📡 Importazione completata - reset completo")
+                print("📡 Importazione completata - preparando reset")
                 self?.handleImportCompletion()
             }
             .store(in: &cancellables)
         
-        // Listener per reset forzato
+        // Listener per reset forzato (dopo importazione)
         NotificationCenter.default.publisher(for: NSNotification.Name("ForceSettingsReset"))
             .sink { [weak self] _ in
-                print("📡 Reset forzato settings")
+                print("📡 Reset forzato - sbloccando sistema")
                 self?.forceReset()
             }
             .store(in: &cancellables)
         
-        // Listener per inizio importazione
-        NotificationCenter.default.publisher(for: NSNotification.Name("ImportStarted"))
+        // Listener per eliminazione dati
+        NotificationCenter.default.publisher(for: NSNotification.Name("DataDeleted"))
             .sink { [weak self] _ in
-                print("📡 Importazione iniziata")
-                self?.isImportInProgress = true
+                print("📡 Dati eliminati - reset leggero")
+                self?.handleDataDeletion()
             }
             .store(in: &cancellables)
     }
     
     func openSettings() {
-        guard !isImportInProgress else {
-            print("⚠️ Importazione in corso - apertura impostazioni bloccata")
+        guard !isOperationInProgress else {
+            print("⚠️ Operazione in corso - apertura impostazioni bloccata")
+            return
+        }
+        
+        guard !isShowingSettings else {
+            print("⚠️ Impostazioni già aperte")
             return
         }
         
         print("🎛️ Apertura impostazioni richiesta")
         
-        // Reset completo prima dell'apertura
-        resetSettingsState()
+        // Reset prima dell'apertura
+        settingsViewKey = UUID()
         
-        // Apertura con delay per garantire pulizia stato
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                self.isShowingSettings = true
-            }
-            print("✅ Impostazioni aperte")
+        // Apertura immediata
+        withAnimation(.easeInOut(duration: 0.3)) {
+            isShowingSettings = true
         }
+        print("✅ Impostazioni aperte")
     }
     
     func closeSettings() {
@@ -65,40 +76,48 @@ class SettingsStateManager: ObservableObject {
         withAnimation(.easeInOut(duration: 0.3)) {
             isShowingSettings = false
         }
-        
-        // Reset dopo chiusura
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.cleanupAfterClose()
-        }
     }
     
     private func handleImportCompletion() {
-        isImportInProgress = false
+        print("🔄 Gestendo completamento importazione")
         
         // Chiudi immediatamente le impostazioni se aperte
         if isShowingSettings {
             isShowingSettings = false
+            print("🎛️ Impostazioni chiuse automaticamente post-importazione")
         }
         
-        // Reset completo con delay maggiore
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.resetSettingsState()
-            print("✅ Reset post-importazione completato")
+        // Reset con delay breve
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.settingsViewKey = UUID()
+            print("🔄 SettingsViewKey resettata post-importazione")
         }
     }
     
     private func forceReset() {
-        isImportInProgress = false
-        isShowingSettings = false
+        print("🔄 Reset forzato in corso")
         
-        DispatchQueue.main.async {
-            self.resetSettingsState()
+        // Sblocca immediatamente il sistema
+        isOperationInProgress = false
+        
+        // Chiudi impostazioni se aperte
+        if isShowingSettings {
+            isShowingSettings = false
         }
+        
+        // Reset della chiave
+        settingsViewKey = UUID()
+        
+        print("✅ Reset forzato completato - sistema sbloccato")
     }
     
-    private func cleanupAfterClose() {
-        if !isImportInProgress {
-            resetSettingsState()
+    private func handleDataDeletion() {
+        print("🔄 Gestendo eliminazione dati")
+        
+        // Per l'eliminazione dati, non bloccare le operazioni
+        // Reset semplice della vista
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            self.settingsViewKey = UUID()
         }
     }
     
@@ -106,6 +125,7 @@ class SettingsStateManager: ObservableObject {
     func resetSettingsState() {
         print("🔄 Reset completo stato impostazioni")
         settingsViewKey = UUID()
+        isOperationInProgress = false
         
         // Assicurati che le impostazioni siano chiuse
         if isShowingSettings {

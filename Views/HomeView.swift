@@ -1,6 +1,9 @@
 import SwiftUI
 import CoreData
 
+import SwiftUI
+import CoreData
+
 struct HomeView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject var themeManager: ThemeManager
@@ -14,7 +17,8 @@ struct HomeView: View {
     @State private var showingAddCar = false
     @State private var refreshID = UUID()
     @State private var forceRefresh = false
-    @State private var addCarViewKey = UUID() // Chiave per resettare AddCarView
+    @State private var addCarViewKey = UUID()
+    @State private var homeViewKey = UUID() // Chiave per reset completo
     
     var body: some View {
         NavigationView {
@@ -48,28 +52,37 @@ struct HomeView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
+                        print("🎛️ Tentativo apertura impostazioni")
                         settingsManager.openSettings()
                     }) {
                         Image(systemName: "gear")
                     }
+                    .disabled(settingsManager.isShowingSettings) // Evita doppi tap
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
+                        print("➕ Tentativo apertura AddCar")
                         // Reset chiave prima di aprire
                         addCarViewKey = UUID()
-                        showingAddCar = true
+                        
+                        // Piccolo delay per assicurarsi che il reset sia completato
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            showingAddCar = true
+                        }
                     }) {
                         Image(systemName: "plus")
                     }
+                    .disabled(showingAddCar) // Evita doppi tap
                 }
             }
             .sheet(isPresented: $showingAddCar) {
                 AddCarView(onSave: {
+                    print("🚗 Auto salvata - chiusura sheet")
                     showingAddCar = false
-                    refreshID = UUID()
+                    refreshView()
                 })
-                .id(addCarViewKey) // Usa chiave per forzare ricreazione vista
+                .id(addCarViewKey)
             }
             .sheet(isPresented: $settingsManager.isShowingSettings, onDismiss: {
                 print("🎛️ Impostazioni chiuse - cleanup")
@@ -90,28 +103,53 @@ struct HomeView: View {
                 refreshView()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ImportCompleted"))) { _ in
-                print("📡 Import completato - refresh completo")
-                refreshView()
-                // Reset anche la chiave di AddCar per evitare conflitti
-                addCarViewKey = UUID()
+                print("📡 Import completato - reset completo dell'interfaccia")
+                performCompleteReset()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ForceSettingsReset"))) { _ in
                 print("📡 Reset forzato impostazioni")
-                settingsManager.resetSettingsState()
-                // Reset anche AddCar
-                addCarViewKey = UUID()
+                performCompleteReset()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DataDeleted"))) { _ in
+                print("📡 Dati eliminati - reset completo dell'interfaccia")
+                performCompleteReset()
             }
         }
+        .id(homeViewKey) // Chiave per forzare ricreazione completa
         .onAppear {
             viewContext.refreshAllObjects()
         }
-        .id(forceRefresh)
     }
     
     private func refreshView() {
-        refreshID = UUID()
-        forceRefresh.toggle()
+        withAnimation(.easeInOut(duration: 0.3)) {
+            refreshID = UUID()
+            forceRefresh.toggle()
+        }
         viewContext.refreshAllObjects()
+    }
+    
+    private func performCompleteReset() {
+        print("🔄 Eseguendo reset completo dell'interfaccia...")
+        
+        // Reset di tutti gli stati
+        showingAddCar = false
+        settingsManager.resetSettingsState()
+        
+        // Reset di tutte le chiavi
+        addCarViewKey = UUID()
+        homeViewKey = UUID()
+        refreshID = UUID()
+        
+        // Refresh del contesto
+        viewContext.refreshAllObjects()
+        
+        // Force refresh con animazione
+        withAnimation(.easeInOut(duration: 0.5)) {
+            forceRefresh.toggle()
+        }
+        
+        print("✅ Reset completo dell'interfaccia completato")
     }
 }
 
