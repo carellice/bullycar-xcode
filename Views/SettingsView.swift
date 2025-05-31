@@ -4,6 +4,7 @@ import CoreData
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.colorScheme) private var systemColorScheme
     @EnvironmentObject var themeManager: ThemeManager
     @AppStorage("enableNotifications") private var enableNotifications = true
     @AppStorage("reminderDays") private var reminderDays = 7
@@ -11,6 +12,7 @@ struct SettingsView: View {
     @State private var showingExportSheet = false
     @State private var showingImportSheet = false
     @State private var refreshID = UUID()
+    @State private var showingAutomaticThemeAlert = false // Alert per tema automatico
     
     var body: some View {
         NavigationView {
@@ -31,7 +33,11 @@ struct SettingsView: View {
                         Menu {
                             ForEach(ThemeManager.ThemeMode.allCases, id: \.self) { mode in
                                 Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                    // Se stiamo passando ad automatico, mostra prima l'alert
+                                    if mode == .automatic && themeManager.themeMode != .automatic {
+                                        showingAutomaticThemeAlert = true
+                                    } else {
+                                        // Per gli altri temi, cambia normalmente
                                         themeManager.themeMode = mode
                                     }
                                 }) {
@@ -139,15 +145,25 @@ struct SettingsView: View {
                     }
                 }
             }
-            .id(refreshID)
+            .id("\(refreshID)_\(themeManager.themeMode.rawValue)") // Usa il tema come parte dell'ID
         }
-        .preferredColorScheme(themeManager.colorScheme)
+        .id(themeManager.themeMode.rawValue) // NavigationView si ricrea quando cambia il tema
+        .preferredColorScheme(themeManager.themeMode == .automatic ? nil : themeManager.colorScheme)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .onReceive(themeManager.$themeMode) { _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                refreshID = UUID()
+        .alert("Impostazione Tema Automatico", isPresented: $showingAutomaticThemeAlert) {
+            Button("Annulla", role: .cancel) { }
+            Button("Conferma") {
+                // Cambia il tema
+                themeManager.themeMode = .automatic
+                
+                // Chiudi le impostazioni con un breve delay per permettere al tema di cambiare
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    dismiss()
+                }
             }
+        } message: {
+            Text("Il tema seguirà le impostazioni del sistema. Le impostazioni si chiuderanno per applicare il cambiamento.")
         }
         .alert("Cancella tutti i dati", isPresented: $showingDeleteAlert) {
             Button("Annulla", role: .cancel) { }
@@ -160,12 +176,12 @@ struct SettingsView: View {
         .sheet(isPresented: $showingExportSheet) {
             DocumentExporter()
                 .environmentObject(themeManager)
-                .preferredColorScheme(themeManager.colorScheme)
+                .preferredColorScheme(themeManager.themeMode == .automatic ? nil : themeManager.colorScheme)
         }
         .sheet(isPresented: $showingImportSheet) {
             DocumentImporter()
                 .environmentObject(themeManager)
-                .preferredColorScheme(themeManager.colorScheme)
+                .preferredColorScheme(themeManager.themeMode == .automatic ? nil : themeManager.colorScheme)
         }
     }
     
@@ -307,9 +323,6 @@ struct DocumentExporter: View {
 }
 
 // MARK: - Document Import
-import SwiftUI
-import CoreData
-
 struct DocumentImporter: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext

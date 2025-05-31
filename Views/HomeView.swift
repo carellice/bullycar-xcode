@@ -114,6 +114,12 @@ struct HomeView: View {
                 print("📡 Dati eliminati - reset completo dell'interfaccia")
                 performCompleteReset()
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ReopenSettings"))) { _ in
+                print("📡 Ricevuta richiesta di riapertura impostazioni per tema automatico")
+                DispatchQueue.main.async {
+                    settingsManager.openSettings()
+                }
+            }
         }
         .id(homeViewKey) // Chiave per forzare ricreazione completa
         .onAppear {
