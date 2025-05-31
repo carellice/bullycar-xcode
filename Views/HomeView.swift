@@ -121,27 +121,24 @@ struct HomeView: View {
     
     // MARK: - Simple Header View
     private var simpleHeaderView: some View {
-        VStack(spacing: 16) {
-            // Titolo sezione
-            HStack {
-                Text("Le tue auto")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Spacer()
-                
-                Text("\(cars.count) \(cars.count == 1 ? "auto" : "auto")")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 15)
-                            .fill(Color.blue.opacity(0.1))
-                    )
-            }
-            .padding(.horizontal)
+        HStack {
+            Text("Le tue auto")
+                .font(.title2)
+                .fontWeight(.bold)
+            
+            Spacer()
+            
+            Text("\(cars.count) \(cars.count == 1 ? "auto" : "auto")")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 15)
+                        .fill(Color.blue.opacity(0.1))
+                )
         }
+        .padding(.horizontal)
     }
     
     // MARK: - Funzioni private
@@ -171,9 +168,6 @@ struct HomeView: View {
         
         print("✅ Reset completo dell'interfaccia completato")
     }
-    
-    // MARK: - Funzioni di supporto per le statistiche (rimosse)
-    // Funzioni rimosse: formatTotalMileage, mostRecentCarYear, getTotalReminders
 }
 
 // MARK: - Empty State View
@@ -196,21 +190,75 @@ struct EmptyStateView: View {
     }
 }
 
-// MARK: - Card per singola auto - Design corretto con navigazione
+// MARK: - Card per singola auto
 struct CarCardView: View {
     @ObservedObject var car: Car
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingEditCar = false
     @State private var showingDeleteAlert = false
     @State private var showingCopyFeedback = false
+    @State private var showingAddMaintenance = false
+    @State private var showingAddDocument = false
     @State private var cardScale: CGFloat = 1.0
     @State private var shimmerOffset: CGFloat = -200
     
     var body: some View {
         NavigationLink(destination: CarDetailView(car: car)) {
-            cardContent
+            VStack(spacing: 0) {
+                // Header con immagine e overlay
+                carImageHeader
+                
+                // Contenuto principale
+                carContentSection
+            }
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(UIColor.secondarySystemGroupedBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.blue.opacity(0.1), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
+            .scaleEffect(cardScale)
         }
         .buttonStyle(PlainButtonStyle())
+        .contextMenu {
+            Button(action: {
+                copyPlateNumber()
+            }) {
+                Label("Copia targa", systemImage: "doc.on.doc")
+            }
+            
+            Divider()
+            
+            Button(action: {
+                showingAddMaintenance = true
+            }) {
+                Label("Aggiungi manutenzione", systemImage: "wrench.and.screwdriver")
+            }
+            
+            Button(action: {
+                showingAddDocument = true
+            }) {
+                Label("Aggiungi documento", systemImage: "doc.badge.plus")
+            }
+            
+            Divider()
+            
+            Button(action: {
+                showingEditCar = true
+            }) {
+                Label("Modifica", systemImage: "pencil")
+            }
+            
+            Button(role: .destructive, action: {
+                showingDeleteAlert = true
+            }) {
+                Label("Elimina", systemImage: "trash")
+            }
+        }
         .sheet(isPresented: $showingEditCar) {
             AddCarView(carToEdit: car, onSave: {
                 showingEditCar = false
@@ -219,6 +267,12 @@ struct CarCardView: View {
                     object: nil
                 )
             })
+        }
+        .sheet(isPresented: $showingAddMaintenance) {
+            AddMaintenanceView(car: car)
+        }
+        .sheet(isPresented: $showingAddDocument) {
+            DocumentPickerSheet(car: car)
         }
         .alert("Elimina auto", isPresented: $showingDeleteAlert) {
             Button("Annulla", role: .cancel) { }
@@ -239,49 +293,7 @@ struct CarCardView: View {
         }
     }
     
-    private var cardContent: some View {
-        VStack(spacing: 0) {
-            // Header con immagine e overlay
-            carImageHeader
-            
-            // Contenuto principale
-            carContentSection
-        }
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.blue.opacity(0.1), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
-        .scaleEffect(cardScale)
-        .contextMenu {
-            Button(action: {
-                copyPlateNumber()
-            }) {
-                Label("Copia targa", systemImage: "doc.on.doc")
-            }
-            
-            Button(action: {
-                showingEditCar = true
-            }) {
-                Label("Modifica", systemImage: "pencil")
-            }
-            
-            Divider()
-            
-            Button(role: .destructive, action: {
-                showingDeleteAlert = true
-            }) {
-                Label("Elimina", systemImage: "trash")
-            }
-        }
-    }
-    
-    // MARK: - Header con immagine (dimensioni ottimizzate)
+    // MARK: - Header con immagine
     private var carImageHeader: some View {
         ZStack {
             // Immagine di sfondo
@@ -290,7 +302,7 @@ struct CarCardView: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(height: 140) // Ridotta l'altezza
+                    .frame(height: 140)
                     .clipped()
             } else {
                 // Gradiente di fallback
@@ -346,33 +358,27 @@ struct CarCardView: View {
                 HStack {
                     Spacer()
                     
-                    Button(action: {
-                        copyPlateNumber()
-                    }) {
-                        HStack(spacing: 4) {
-                            Text(car.plate ?? "")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                            
-                            Image(systemName: "doc.on.doc")
-                                .font(.caption2)
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(.black.opacity(0.6))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(.white.opacity(0.3), lineWidth: 1)
-                                )
-                        )
+                    // Badge targa senza azione di tap per evitare conflitti con NavigationLink
+                    HStack(spacing: 4) {
+                        Text(car.plate ?? "")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Image(systemName: "doc.on.doc")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.8))
                     }
-                    .onTapGesture {
-                        copyPlateNumber()
-                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.black.opacity(0.6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(.white.opacity(0.3), lineWidth: 1)
+                            )
+                    )
                 }
                 
                 Spacer()
@@ -407,7 +413,7 @@ struct CarCardView: View {
         )
     }
     
-    // MARK: - Sezione contenuto (solo km, anno e note opzionali)
+    // MARK: - Sezione contenuto
     private var carContentSection: some View {
         VStack(spacing: 12) {
             // Solo anno e chilometraggio
@@ -537,19 +543,6 @@ struct CarCardView: View {
         }
     }
     
-    private func calculateYearlyUsage() -> Int {
-        guard let addDate = car.addDate else { return 0 }
-        let years = max(1, Int(Date().timeIntervalSince(addDate) / (365.25 * 24 * 3600)))
-        return Int(car.mileage) / years
-    }
-    
-    private func progressColor(for mileage: Int32) -> Color {
-        let percentage = Double(mileage) / 200000.0
-        if percentage < 0.3 { return .green }
-        if percentage < 0.7 { return .orange }
-        return .red
-    }
-    
     private func copyPlateNumber() {
         guard let plate = car.plate, !plate.isEmpty else { return }
         
@@ -592,6 +585,253 @@ struct CarCardView: View {
             } catch {
                 print("❌ Errore eliminazione auto: \(error)")
             }
+        }
+    }
+}
+
+// MARK: - Document Picker Sheet per aggiunta rapida documenti
+struct DocumentPickerSheet: View {
+    let car: Car
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var showingImagePicker = false
+    @State private var showingDocumentPicker = false
+    @State private var showingNameDialog = false
+    @State private var imageSourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var pendingDocumentData: (data: Data, type: String, originalName: String)?
+    @State private var documentName = ""
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Image(systemName: "doc.badge.plus")
+                    .font(.system(size: 60))
+                    .foregroundColor(.blue)
+                
+                Text("Aggiungi documento per \(car.name ?? "auto")")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .multilineTextAlignment(.center)
+                
+                VStack(spacing: 16) {
+                    Button(action: {
+                        imageSourceType = .camera
+                        showingImagePicker = true
+                    }) {
+                        HStack {
+                            Image(systemName: "camera")
+                                .font(.title3)
+                            Text("Scatta foto")
+                                .fontWeight(.medium)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                    
+                    Button(action: {
+                        imageSourceType = .photoLibrary
+                        showingImagePicker = true
+                    }) {
+                        HStack {
+                            Image(systemName: "photo")
+                                .font(.title3)
+                            Text("Scegli dalla libreria")
+                                .fontWeight(.medium)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                    
+                    Button(action: {
+                        showingDocumentPicker = true
+                    }) {
+                        HStack {
+                            Image(systemName: "doc")
+                                .font(.title3)
+                            Text("Importa PDF")
+                                .fontWeight(.medium)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.orange)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                }
+                .padding(.horizontal)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Aggiungi documento")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Chiudi") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePickerView(sourceType: imageSourceType) { image in
+                if let image = image {
+                    handleImageSelection(image)
+                }
+            }
+        }
+        .sheet(isPresented: $showingDocumentPicker) {
+            DocumentPickerView { url in
+                handleDocumentSelection(url)
+            }
+        }
+        .alert("Nome documento", isPresented: $showingNameDialog) {
+            TextField("Nome documento", text: $documentName)
+                .textInputAutocapitalization(.words)
+            
+            Button("Annulla", role: .cancel) {
+                pendingDocumentData = nil
+                documentName = ""
+            }
+            
+            Button("Salva") {
+                saveDocumentWithName()
+            }
+            .disabled(documentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            
+        } message: {
+            Text("Inserisci un nome per il documento")
+        }
+    }
+    
+    private func handleImageSelection(_ image: UIImage) {
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else { return }
+        
+        let defaultName = "Foto_\(Date().formatted(date: .abbreviated, time: .omitted))"
+        pendingDocumentData = (data: imageData, type: "image/jpeg", originalName: defaultName)
+        documentName = defaultName
+        showingNameDialog = true
+    }
+    
+    private func handleDocumentSelection(_ url: URL) {
+        do {
+            let data = try Data(contentsOf: url)
+            let fileName = url.deletingPathExtension().lastPathComponent
+            let fileType = url.pathExtension == "pdf" ? "application/pdf" : "application/octet-stream"
+            
+            pendingDocumentData = (data: data, type: fileType, originalName: fileName)
+            documentName = fileName
+            showingNameDialog = true
+        } catch {
+            print("Errore lettura documento: \(error)")
+        }
+    }
+    
+    private func saveDocumentWithName() {
+        guard let documentData = pendingDocumentData else { return }
+        
+        let document = Document(context: viewContext)
+        document.id = UUID()
+        document.name = documentName.trimmingCharacters(in: .whitespacesAndNewlines)
+        document.type = documentData.type
+        document.size = Int64(documentData.data.count)
+        document.data = documentData.data
+        document.dateAdded = Date()
+        document.car = car
+        
+        do {
+            try viewContext.save()
+            print("✅ Documento salvato con nome: \(document.name ?? "")")
+            dismiss()
+        } catch {
+            print("❌ Errore salvataggio documento: \(error)")
+        }
+        
+        // Reset
+        pendingDocumentData = nil
+        documentName = ""
+    }
+}
+
+// MARK: - Image Picker semplificato
+struct ImagePickerView: UIViewControllerRepresentable {
+    let sourceType: UIImagePickerController.SourceType
+    let completion: (UIImage?) -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = sourceType
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePickerView
+        
+        init(_ parent: ImagePickerView) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.completion(image)
+            }
+            parent.dismiss()
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.completion(nil)
+            parent.dismiss()
+        }
+    }
+}
+
+// MARK: - Document Picker semplificato
+struct DocumentPickerView: UIViewControllerRepresentable {
+    let completion: (URL) -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.pdf, .image, .text, .data])
+        picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = false
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let parent: DocumentPickerView
+        
+        init(_ parent: DocumentPickerView) {
+            self.parent = parent
+        }
+        
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            parent.completion(url)
+            parent.dismiss()
+        }
+        
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            parent.dismiss()
         }
     }
 }
