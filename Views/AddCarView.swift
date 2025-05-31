@@ -100,6 +100,15 @@ struct AddCarView: View {
                 Section(header: Text("Dettagli")) {
                     TextField("Targa", text: $plate)
                         .textCase(.uppercase)
+                        .autocapitalization(.allCharacters)
+                        .disableAutocorrection(true)
+                        .onChange(of: plate) { newValue in
+                            // Forza maiuscolo in tempo reale
+                            let uppercased = newValue.uppercased()
+                            if plate != uppercased {
+                                plate = uppercased
+                            }
+                        }
                         .disabled(isSaving)
                     
                     DatePicker("Data immatricolazione",
@@ -188,7 +197,12 @@ struct AddCarView: View {
         car.brand = brand.trimmingCharacters(in: .whitespacesAndNewlines)
         car.model = model.trimmingCharacters(in: .whitespacesAndNewlines)
         car.year = Int32(year)
-        car.plate = plate.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Gestione targa con maiuscolo forzato e pulizia spazi
+        let cleanedPlate = plate.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        car.plate = cleanedPlate
+        print("📝 Targa salvata: '\(cleanedPlate)'")
+        
         car.registrationDate = registrationDate
         car.mileage = Int32(mileage) ?? 0
         
