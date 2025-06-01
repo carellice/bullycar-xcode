@@ -211,7 +211,7 @@ struct AddCarView: View {
         }
         
         do {
-            try viewContext.save()
+            try DataModificationTracker.saveContext(viewContext)
             print("✅ Auto salvata con successo - tentativo di chiusura...")
             
             // Chiusura diretta e immediata

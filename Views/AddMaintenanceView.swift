@@ -324,7 +324,7 @@ struct AddMaintenanceView: View {
             }
             
             do {
-                try viewContext.save()
+                try DataModificationTracker.saveContext(viewContext)
                 print("✅ Manutenzione salvata")
                 
                 // Aggiorna le notifiche per questa auto

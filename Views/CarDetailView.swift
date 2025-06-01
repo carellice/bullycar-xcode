@@ -190,7 +190,7 @@ struct CarDetailView: View {
         viewContext.delete(car)
         
         do {
-            try viewContext.save()
+            try DataModificationTracker.saveContext(viewContext)
             dismiss()
         } catch {
             print("Errore eliminazione auto: \(error)")
@@ -307,7 +307,7 @@ struct MaintenanceTabView: View {
         viewContext.delete(maintenance)
         
         do {
-            try viewContext.save()
+            try DataModificationTracker.saveContext(viewContext)
             refreshMaintenanceList()
         } catch {
             print("Errore eliminazione intervento: \(error)")
@@ -540,7 +540,7 @@ struct DocumentsTabView: View {
         document.car = car
         
         do {
-            try viewContext.save()
+            try DataModificationTracker.saveContext(viewContext)
             print("✅ Documento salvato con nome: \(document.name ?? "")")
         } catch {
             print("❌ Errore salvataggio documento: \(error)")
@@ -676,7 +676,7 @@ struct DocumentRowView: View {
         viewContext.delete(document)
         
         do {
-            try viewContext.save()
+            try DataModificationTracker.saveContext(viewContext)
             print("✅ Documento eliminato")
         } catch {
             print("❌ Errore eliminazione documento: \(error)")
@@ -690,7 +690,7 @@ struct DocumentRowView: View {
         document.name = trimmedName
         
         do {
-            try viewContext.save()
+            try DataModificationTracker.saveContext(viewContext)
             print("✅ Documento rinominato in: \(trimmedName)")
         } catch {
             print("❌ Errore rinomina documento: \(error)")
@@ -1327,7 +1327,7 @@ struct NotesTabView: View {
         car.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
         
         do {
-            try viewContext.save()
+            try DataModificationTracker.saveContext(viewContext)
             
             // Mostra animazione di successo
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {

@@ -573,7 +573,7 @@ struct CarCardView: View {
             viewContext.delete(car)
             
             do {
-                try viewContext.save()
+                try DataModificationTracker.saveContext(viewContext)
                 
                 // Invia notifica per refresh
                 NotificationCenter.default.post(
@@ -746,7 +746,7 @@ struct DocumentPickerSheet: View {
         document.car = car
         
         do {
-            try viewContext.save()
+            try DataModificationTracker.saveContext(viewContext)
             print("✅ Documento salvato con nome: \(document.name ?? "")")
             dismiss()
         } catch {

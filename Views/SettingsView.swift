@@ -8,6 +8,9 @@ struct SettingsView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @AppStorage("enableNotifications") private var enableNotifications = true
     @AppStorage("reminderDays") private var reminderDays = 7
+    @AppStorage("lastExportDate") private var lastExportDate: Double = 0
+    @AppStorage("lastImportDate") private var lastImportDate: Double = 0
+    @AppStorage("lastDataModification") private var lastDataModification: Double = 0
     @State private var showingDeleteAlert = false
     @State private var showingExportSheet = false
     @State private var showingImportSheet = false
@@ -97,6 +100,32 @@ struct SettingsView: View {
                     Text("I backup includono tutte le auto, manutenzioni, documenti e promemoria")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    
+                    // Info ultima esportazione
+                    if lastExportDate > 0 {
+                        HStack {
+                            Text("Ultima esportazione")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(formatDate(Date(timeIntervalSince1970: lastExportDate)))
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    // Info ultima importazione
+                    if lastImportDate > 0 {
+                        HStack {
+                            Text("Ultima importazione")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(formatDate(Date(timeIntervalSince1970: lastImportDate)))
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                    }
                 }
                 
                 // Sezione info app
@@ -113,6 +142,17 @@ struct SettingsView: View {
                         Spacer()
                         Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
                             .foregroundColor(.secondary)
+                    }
+                    
+                    // Info ultima modifica dati
+                    if lastDataModification > 0 {
+                        HStack {
+                            Text("Ultima modifica dati")
+                            Spacer()
+                            Text(formatDate(Date(timeIntervalSince1970: lastDataModification)))
+                                .foregroundColor(.orange)
+                        }
+                        .font(.subheadline)
                     }
                     
                     Button(action: {
@@ -235,6 +275,43 @@ struct SettingsView: View {
             return "L'app seguirà le impostazioni del dispositivo"
         }
     }
+    
+    private func formatDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Controlla se è oggi
+        if calendar.isDate(date, inSameDayAs: now) {
+            let timeFormatter = DateFormatter()
+            timeFormatter.locale = Locale(identifier: "it_IT")
+            timeFormatter.dateFormat = "HH:mm"
+            return "Oggi \(timeFormatter.string(from: date))"
+        }
+        
+        // Controlla se è ieri
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: now),
+           calendar.isDate(date, inSameDayAs: yesterday) {
+            let timeFormatter = DateFormatter()
+            timeFormatter.locale = Locale(identifier: "it_IT")
+            timeFormatter.dateFormat = "HH:mm"
+            return "Ieri \(timeFormatter.string(from: date))"
+        }
+        
+        // Controlla se è l'altro ieri
+        if let dayBeforeYesterday = calendar.date(byAdding: .day, value: -2, to: now),
+           calendar.isDate(date, inSameDayAs: dayBeforeYesterday) {
+            let timeFormatter = DateFormatter()
+            timeFormatter.locale = Locale(identifier: "it_IT")
+            timeFormatter.dateFormat = "HH:mm"
+            return "L'altro ieri \(timeFormatter.string(from: date))"
+        }
+        
+        // Per tutte le altre date, formato completo
+        let fullFormatter = DateFormatter()
+        fullFormatter.locale = Locale(identifier: "it_IT")
+        fullFormatter.dateFormat = "d MMMM yyyy HH:mm"
+        return fullFormatter.string(from: date)
+    }
 }
 
 // MARK: - Document Export
@@ -312,6 +389,10 @@ struct DocumentExporter: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             do {
                 exportedData = try BackupManager.exportData(from: viewContext)
+                
+                // Salva timestamp ultima esportazione
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastExportDate")
+                
                 isExporting = false
                 showingShareSheet = true
             } catch {
@@ -451,6 +532,9 @@ struct DocumentImporter: View {
                     print("✅ Importazione completata con successo")
                     self.isImporting = false
                     self.successMessage = "Backup importato con successo!"
+                    
+                    // Salva timestamp ultima importazione
+                    UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastImportDate")
                 }
                 
             } catch {

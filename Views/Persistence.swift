@@ -22,7 +22,7 @@ struct PersistenceController {
         }
         
         do {
-            try viewContext.save()
+            try DataModificationTracker.saveContext(viewContext) // ← CORRETTO
         } catch {
             let nsError = error as NSError
             fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
@@ -77,7 +77,7 @@ struct PersistenceController {
         
         if context.hasChanges {
             do {
-                try context.save()
+                try DataModificationTracker.saveContext(context) // ← CORRETTO
                 print("✅ Dati salvati localmente")
             } catch {
                 let nsError = error as NSError
@@ -96,7 +96,7 @@ struct PersistenceController {
             
             do {
                 try container.viewContext.execute(deleteRequest)
-                try container.viewContext.save()
+                try DataModificationTracker.saveContext(container.viewContext) // ← CORRETTO
                 print("✅ Tutti i dati eliminati")
             } catch {
                 print("❌ Errore eliminazione dati: \(error)")
