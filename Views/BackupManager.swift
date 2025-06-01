@@ -217,8 +217,9 @@ struct BackupManager {
     // Crea nome file per il backup
     static func generateBackupFileName() -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd_HH-mm"
+        formatter.locale = Locale(identifier: "it_IT") // Usa formato italiano
+        formatter.dateFormat = "dd-MM-yyyy_HH.mm" // Formato: giorno-mese-anno_ora.minuti
         let dateString = formatter.string(from: Date())
-        return "BullyCar_Backup_\(dateString).json"
+        return "bullycar_\(dateString).json"
     }
 }
