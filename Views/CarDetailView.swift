@@ -308,7 +308,7 @@ struct MaintenanceTabView: View {
     }
     
     var availableYears: [Int] {
-        let years = Set(car.maintenanceArray.compactMap { maintenance in
+        let years = Set(car.maintenanceArray.compactMap { maintenance -> Int? in
             guard let date = maintenance.date else { return nil }
             return Calendar.current.component(.year, from: date)
         })
