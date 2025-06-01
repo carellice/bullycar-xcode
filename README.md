@@ -1,8 +1,27 @@
+<p align="center">
+  <a href="https://www.flavioceccarelli.org" target="_blank">
+    <img src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83" alt="Download on the App Store" style="height: 60px;">
+  </a>
+</p>
+
 # 🚗 BullyCar
 
 **L'app completa per gestire le tue automobili**
 
 BullyCar è un'applicazione iOS nativa sviluppata in SwiftUI che ti permette di tenere traccia di tutto ciò che riguarda le tue auto: manutenzioni, documenti, promemoria e molto altro, tutto in un unico posto.
+
+---
+
+## 📸 Screenshot
+
+<p align="center">
+  <img src="https://github.com/carellice/bullycar-xcode/blob/main/screenshots/App%20Store/iPhone/1.png?raw=true" alt="Home Screen" width="230">
+  <img src="https://github.com/carellice/bullycar-xcode/blob/main/screenshots/App%20Store/iPhone/2.png?raw=true" alt="Car Detail 1" width="230">
+  <img src="https://github.com/carellice/bullycar-xcode/blob/main/screenshots/App%20Store/iPhone/3.png?raw=true" alt="Car Detail 2" width="230">
+  <img src="https://github.com/carellice/bullycar-xcode/blob/main/screenshots/App%20Store/iPhone/4.png?raw=true" alt="Settings" width="230">
+</p>
+
+---
 
 ## ✨ Caratteristiche Principali
 
