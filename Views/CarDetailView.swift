@@ -828,6 +828,7 @@ struct DocumentsTabView: View {
     @State private var showingNameDialog = false
     @State private var pendingDocumentData: (data: Data, type: String, originalName: String)?
     @State private var documentName = ""
+    @State private var searchText = "" // ✅ Nuovo stato per la ricerca
     @Environment(\.managedObjectContext) private var viewContext
     
     var documents: [Document] {
@@ -837,38 +838,34 @@ struct DocumentsTabView: View {
         }
     }
     
+    // ✅ Nuova computed property per documenti filtrati
+    var filteredDocuments: [Document] {
+        if searchText.isEmpty {
+            return documents
+        } else {
+            return documents.filter { document in
+                let searchLower = searchText.lowercased()
+                let nameMatch = document.name?.lowercased().contains(searchLower) ?? false
+                let typeMatch = document.type?.lowercased().contains(searchLower) ?? false
+                return nameMatch || typeMatch
+            }
+        }
+    }
+    
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+            // ✅ Header con ricerca
+            documentHeaderView
+            
             if documents.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "doc.text")
-                        .font(.system(size: 40))
-                        .foregroundColor(.gray)
-                    
-                    Text("Nessun documento salvato")
-                        .foregroundColor(.secondary)
-                    
-                    Button(action: { showingActionSheet = true }) {
-                        Label("Aggiungi documento", systemImage: "plus.circle.fill")
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                .padding(.vertical, 40)
+                emptyStateView
             } else {
-                Button(action: { showingActionSheet = true }) {
-                    Label("Aggiungi documento", systemImage: "plus.circle.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-                
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(documents) { document in
-                            DocumentRowView(document: document)
-                                .padding(.horizontal)
-                        }
-                    }
+                if filteredDocuments.isEmpty && !searchText.isEmpty {
+                    // ✅ Stato vuoto per ricerca senza risultati
+                    searchEmptyStateView
+                } else {
+                    // ✅ Lista documenti filtrati
+                    documentListView
                 }
             }
         }
@@ -922,6 +919,136 @@ struct DocumentsTabView: View {
         }
     }
     
+    // ✅ MARK: - Header con ricerca
+    private var documentHeaderView: some View {
+        VStack(spacing: 12) {
+            // Prima riga: titolo e bottone aggiungi
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Documenti")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    
+                    if !searchText.isEmpty {
+                        Text("\(filteredDocuments.count) di \(documents.count) documenti")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("\(documents.count) documenti totali")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                Button(action: { showingActionSheet = true }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding(.horizontal)
+            
+            // Seconda riga: campo di ricerca (solo se ci sono documenti)
+            if !documents.isEmpty {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    
+                    TextField("Cerca documenti...", text: $searchText)
+                        .textFieldStyle(PlainTextFieldStyle())
+                    
+                    if !searchText.isEmpty {
+                        Button(action: {
+                            searchText = ""
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(UIColor.systemGray6))
+                )
+                .padding(.horizontal)
+            }
+        }
+        .padding(.vertical, 12)
+        .background(Color(UIColor.systemGroupedBackground))
+    }
+    
+    // ✅ MARK: - Lista documenti
+    private var documentListView: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(filteredDocuments) { document in
+                    DocumentRowView(document: document)
+                        .padding(.horizontal)
+                }
+            }
+            .padding(.vertical)
+        }
+    }
+    
+    // ✅ MARK: - Stato vuoto normale
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "doc.text")
+                .font(.system(size: 60))
+                .foregroundColor(.gray)
+            
+            Text("Nessun documento salvato")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            
+            Text("Aggiungi foto di documenti importanti come libretto, assicurazione, bollo e altro")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            Button(action: { showingActionSheet = true }) {
+                Label("Aggiungi documento", systemImage: "plus.circle.fill")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(12)
+            }
+        }
+        .padding(.vertical, 60)
+    }
+    
+    // ✅ MARK: - Stato vuoto per ricerca
+    private var searchEmptyStateView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 50))
+                .foregroundColor(.gray)
+            
+            Text("Nessun risultato")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            
+            Text("Non ci sono documenti che corrispondono a '\(searchText)'")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            Button("Cancella ricerca") {
+                searchText = ""
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(.vertical, 40)
+    }
+    
+    // ✅ Le altre funzioni rimangono uguali...
     private func handleImageSelection(_ image: UIImage) {
         guard let imageData = image.jpegData(compressionQuality: 0.8) else { return }
         
