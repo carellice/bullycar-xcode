@@ -231,49 +231,111 @@ struct MaintenanceTabView: View {
     @State private var maintenanceToDelete: Maintenance?
     @State private var showingDeleteAlert = false
     @State private var refreshID = UUID()
+    @State private var showingFilters = false
+    @State private var selectedFilter: MaintenanceFilter = .all
+    @State private var selectedYear: Int = 0
+    @State private var searchText = ""
     
-    var maintenances: [Maintenance] {
-        let set = car.maintenances as? Set<Maintenance> ?? []
-        return set.sorted {
-            $0.date ?? Date() > $1.date ?? Date()
+    enum MaintenanceFilter: String, CaseIterable {
+        case all = "Tutti"
+        case tagliando = "Tagliando"
+        case revisione = "Revisione"
+        case bollo = "Bollo"
+        case assicurazione = "Assicurazione"
+        case gomme = "Cambio gomme"
+        case custom = "Personalizzati"
+        
+        var icon: String {
+            switch self {
+            case .all: return "line.3.horizontal.decrease"
+            case .tagliando: return "wrench.and.screwdriver"
+            case .revisione: return "checkmark.shield"
+            case .bollo: return "doc.text"
+            case .assicurazione: return "shield"
+            case .gomme: return "circle"
+            case .custom: return "gear"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .all: return .blue
+            case .tagliando: return .orange
+            case .revisione: return .green
+            case .bollo: return .red
+            case .assicurazione: return .purple
+            case .gomme: return .brown
+            case .custom: return .gray
+            }
         }
     }
     
+    var filteredMaintenances: [Maintenance] {
+        let allMaintenances = car.maintenanceArray
+        var filtered = allMaintenances
+        
+        // Filtro per tipo
+        if selectedFilter != .all {
+            filtered = filtered.filter { maintenance in
+                if selectedFilter == .custom {
+                    return maintenance.type == "custom"
+                } else {
+                    return maintenance.type == selectedFilter.rawValue.lowercased()
+                }
+            }
+        }
+        
+        // Filtro per anno
+        if selectedYear > 0 {
+            filtered = filtered.filter { maintenance in
+                guard let date = maintenance.date else { return false }
+                return Calendar.current.component(.year, from: date) == selectedYear
+            }
+        }
+        
+        // Filtro per testo di ricerca
+        if !searchText.isEmpty {
+            filtered = filtered.filter { maintenance in
+                let searchLower = searchText.lowercased()
+                let typeMatch = maintenance.displayType.lowercased().contains(searchLower)
+                let notesMatch = maintenance.notes?.lowercased().contains(searchLower) ?? false
+                let costMatch = String(format: "%.2f", maintenance.cost).contains(searchLower)
+                return typeMatch || notesMatch || costMatch
+            }
+        }
+        
+        return filtered
+    }
+    
+    var availableYears: [Int] {
+        let years = Set(car.maintenanceArray.compactMap { maintenance in
+            guard let date = maintenance.date else { return nil }
+            return Calendar.current.component(.year, from: date)
+        })
+        return Array(years).sorted(by: >)
+    }
+    
+    var hasActiveFilters: Bool {
+        return selectedFilter != .all || selectedYear > 0 || !searchText.isEmpty
+    }
+    
     var body: some View {
-        VStack {
-            if maintenances.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "wrench.and.screwdriver")
-                        .font(.system(size: 40))
-                        .foregroundColor(.gray)
-                    
-                    Text("Nessun intervento registrato")
-                        .foregroundColor(.secondary)
-                    
-                    Button(action: { showingAddMaintenance = true }) {
-                        Label("Aggiungi intervento", systemImage: "plus.circle.fill")
-                    }
-                    .buttonStyle(.borderedProminent)
+        VStack(spacing: 0) {
+            // Header con filtri
+            filterHeaderView
+            
+            // Lista manutenzioni filtrate
+            if filteredMaintenances.isEmpty {
+                if hasActiveFilters {
+                    // Stato vuoto con filtri attivi
+                    filteredEmptyStateView
+                } else {
+                    // Stato vuoto normale
+                    normalEmptyStateView
                 }
-                .padding(.vertical, 40)
             } else {
-                Button(action: { showingAddMaintenance = true }) {
-                    Label("Aggiungi intervento", systemImage: "plus.circle.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .padding(.horizontal)
-                
-                ForEach(maintenances) { maintenance in
-                    MaintenanceRowView(
-                        maintenance: maintenance,
-                        onDelete: {
-                            maintenanceToDelete = maintenance
-                            showingDeleteAlert = true
-                        }
-                    )
-                    .padding(.horizontal)
-                }
-                .id(refreshID) // Forza refresh quando cambia
+                // Lista con risultati
+                maintenanceListView
             }
         }
         .alert("Elimina intervento", isPresented: $showingDeleteAlert) {
@@ -290,8 +352,216 @@ struct MaintenanceTabView: View {
             print("📡 Ricevuta notifica MaintenanceDataChanged")
             refreshMaintenanceList()
         }
+        .sheet(isPresented: $showingFilters) {
+            MaintenanceFiltersSheet(
+                selectedFilter: $selectedFilter,
+                selectedYear: $selectedYear,
+                availableYears: availableYears,
+                searchText: $searchText
+            )
+        }
     }
     
+    // MARK: - Filter Header
+    private var filterHeaderView: some View {
+        VStack(spacing: 12) {
+            // Riga principale con conteggio e filtri
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Manutenzioni")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    
+                    if hasActiveFilters {
+                        Text("\(filteredMaintenances.count) di \(car.maintenanceArray.count) interventi")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("\(car.maintenanceArray.count) interventi totali")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                HStack(spacing: 8) {
+                    // Bottone filtri
+                    Button(action: { showingFilters = true }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                                .font(.title3)
+                                .foregroundColor(hasActiveFilters ? .white : .blue)
+                            
+                            if hasActiveFilters {
+                                Text("Filtri")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .padding(.horizontal, hasActiveFilters ? 12 : 8)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(hasActiveFilters ? Color.blue : Color.blue.opacity(0.1))
+                        )
+                    }
+                    
+                    // Bottone aggiungi
+                    Button(action: { showingAddMaintenance = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundColor(.green)
+                    }
+                }
+            }
+            .padding(.horizontal)
+            
+            // Indicatori filtri attivi
+            if hasActiveFilters {
+                activeFiltersView
+            }
+        }
+        .padding(.vertical, 12)
+        .background(Color(UIColor.systemGroupedBackground))
+    }
+    
+    // MARK: - Active Filters Indicators
+    private var activeFiltersView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                // Filtro tipo
+                if selectedFilter != .all {
+                    FilterChip(
+                        text: selectedFilter.rawValue,
+                        icon: selectedFilter.icon,
+                        color: selectedFilter.color
+                    ) {
+                        selectedFilter = .all
+                    }
+                }
+                
+                // Filtro anno
+                if selectedYear > 0 {
+                    FilterChip(
+                        text: String(selectedYear),
+                        icon: "calendar",
+                        color: .orange
+                    ) {
+                        selectedYear = 0
+                    }
+                }
+                
+                // Filtro ricerca
+                if !searchText.isEmpty {
+                    FilterChip(
+                        text: "'\(searchText)'",
+                        icon: "magnifyingglass",
+                        color: .purple
+                    ) {
+                        searchText = ""
+                    }
+                }
+                
+                // Pulsante reset tutti
+                Button(action: {
+                    selectedFilter = .all
+                    selectedYear = 0
+                    searchText = ""
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "xmark")
+                            .font(.caption2)
+                        Text("Reset")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.red)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.red, lineWidth: 1)
+                    )
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    // MARK: - Lista manutenzioni
+    private var maintenanceListView: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(filteredMaintenances) { maintenance in
+                    MaintenanceRowView(
+                        maintenance: maintenance,
+                        onDelete: {
+                            maintenanceToDelete = maintenance
+                            showingDeleteAlert = true
+                        }
+                    )
+                    .padding(.horizontal)
+                }
+            }
+            .padding(.vertical)
+        }
+        .id(refreshID)
+    }
+    
+    // MARK: - Empty States
+    private var normalEmptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "wrench.and.screwdriver")
+                .font(.system(size: 40))
+                .foregroundColor(.gray)
+            
+            Text("Nessun intervento registrato")
+                .foregroundColor(.secondary)
+            
+            Button(action: { showingAddMaintenance = true }) {
+                Label("Aggiungi intervento", systemImage: "plus.circle.fill")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(.vertical, 40)
+    }
+    
+    private var filteredEmptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 40))
+                .foregroundColor(.gray)
+            
+            Text("Nessun risultato")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            
+            Text("Non ci sono interventi che corrispondono ai filtri selezionati")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            HStack(spacing: 12) {
+                Button("Reset filtri") {
+                    selectedFilter = .all
+                    selectedYear = 0
+                    searchText = ""
+                }
+                .buttonStyle(.bordered)
+                
+                Button("Aggiungi intervento") {
+                    showingAddMaintenance = true
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(.vertical, 40)
+    }
+    
+    // MARK: - Funzioni private
     private func refreshMaintenanceList() {
         withAnimation(.easeInOut(duration: 0.3)) {
             refreshID = UUID()
@@ -311,6 +581,154 @@ struct MaintenanceTabView: View {
             refreshMaintenanceList()
         } catch {
             print("Errore eliminazione intervento: \(error)")
+        }
+    }
+}
+
+// MARK: - Filter Chip Component
+struct FilterChip: View {
+    let text: String
+    let icon: String
+    let color: Color
+    let onRemove: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption2)
+            
+            Text(text)
+                .font(.caption2)
+                .fontWeight(.medium)
+            
+            Button(action: onRemove) {
+                Image(systemName: "xmark")
+                    .font(.caption2)
+            }
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(color)
+        )
+    }
+}
+
+// MARK: - Filters Sheet
+struct MaintenanceFiltersSheet: View {
+    @Binding var selectedFilter: MaintenanceTabView.MaintenanceFilter
+    @Binding var selectedYear: Int
+    let availableYears: [Int]
+    @Binding var searchText: String
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                // Sezione ricerca
+                Section(header: Text("Ricerca")) {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.secondary)
+                        
+                        TextField("Cerca per tipo, note o costo...", text: $searchText)
+                            .textFieldStyle(PlainTextFieldStyle())
+                    }
+                    
+                    if !searchText.isEmpty {
+                        Button("Cancella ricerca") {
+                            searchText = ""
+                        }
+                        .foregroundColor(.red)
+                    }
+                }
+                
+                // Sezione tipo intervento
+                Section(header: Text("Tipo Intervento")) {
+                    ForEach(MaintenanceTabView.MaintenanceFilter.allCases, id: \.self) { filter in
+                        Button(action: {
+                            selectedFilter = filter
+                        }) {
+                            HStack {
+                                Image(systemName: filter.icon)
+                                    .foregroundColor(filter.color)
+                                    .frame(width: 24)
+                                
+                                Text(filter.rawValue)
+                                    .foregroundColor(.primary)
+                                
+                                Spacer()
+                                
+                                if selectedFilter == filter {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Sezione anno
+                if !availableYears.isEmpty {
+                    Section(header: Text("Anno")) {
+                        Button(action: {
+                            selectedYear = 0
+                        }) {
+                            HStack {
+                                Text("Tutti gli anni")
+                                    .foregroundColor(.primary)
+                                
+                                Spacer()
+                                
+                                if selectedYear == 0 {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                        }
+                        
+                        ForEach(availableYears, id: \.self) { year in
+                            Button(action: {
+                                selectedYear = year
+                            }) {
+                                HStack {
+                                    Text(String(year))
+                                        .foregroundColor(.primary)
+                                    
+                                    Spacer()
+                                    
+                                    if selectedYear == year {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Sezione reset
+                Section {
+                    Button("Reset tutti i filtri") {
+                        selectedFilter = .all
+                        selectedYear = 0
+                        searchText = ""
+                    }
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
+            }
+            .navigationTitle("Filtri Manutenzioni")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Fine") {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }
