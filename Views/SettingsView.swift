@@ -238,11 +238,7 @@ struct SettingsView: View {
             Button("Conferma") {
                 // Cambia il tema
                 themeManager.themeMode = .automatic
-                
-                // Chiudi le impostazioni con un breve delay per permettere al tema di cambiare
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    dismiss()
-                }
+                dismiss()
             }
         } message: {
             Text("Il tema seguirà le impostazioni del sistema. Le impostazioni si chiuderanno per applicare il cambiamento.")
