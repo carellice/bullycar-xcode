@@ -354,31 +354,49 @@ struct CarCardView: View {
             
             // Contenuto sovrapposto
             VStack {
-                // Badge targa in alto a destra
+                // Badge targa europea in alto a destra
                 HStack {
                     Spacer()
                     
-                    // Badge targa senza azione di tap per evitare conflitti con NavigationLink
-                    HStack(spacing: 4) {
-                        Text(car.plate ?? "")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
+                    // Targa europea realistica - dimensioni contenute
+                    HStack(spacing: 0) {
+                        // Banda blu laterale sinistra con stelle europee
+                        ZStack {
+                            Rectangle()
+                                .fill(Color.blue)
+                                .frame(width: 14)
+                            
+                            VStack(spacing: 1) {
+                                // Stelle europee stilizzate
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 3))
+                                    .foregroundColor(.yellow)
+                                
+                                Text("I")
+                                    .font(.system(size: 6, weight: .bold))
+                                    .foregroundColor(.white)
+                                
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 3))
+                                    .foregroundColor(.yellow)
+                            }
+                        }
                         
-                        Image(systemName: "doc.on.doc")
-                            .font(.caption2)
-                            .foregroundColor(.white.opacity(0.8))
+                        // Parte bianca con targa - larghezza adattiva
+                        Text(car.plate ?? "")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                            .background(Color.white)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(.black.opacity(0.6))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(.white.opacity(0.3), lineWidth: 1)
-                            )
+                    .frame(height: 24)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 2)
+                            .stroke(Color.black, lineWidth: 0.8)
                     )
+                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                    .shadow(color: .black.opacity(0.3), radius: 2, x: 1, y: 1)
                 }
                 
                 Spacer()
@@ -573,7 +591,7 @@ struct CarCardView: View {
             viewContext.delete(car)
             
             do {
-                try DataModificationTracker.saveContext(viewContext)
+                try viewContext.save()
                 
                 // Invia notifica per refresh
                 NotificationCenter.default.post(
@@ -746,7 +764,7 @@ struct DocumentPickerSheet: View {
         document.car = car
         
         do {
-            try DataModificationTracker.saveContext(viewContext)
+            try viewContext.save()
             print("✅ Documento salvato con nome: \(document.name ?? "")")
             dismiss()
         } catch {
