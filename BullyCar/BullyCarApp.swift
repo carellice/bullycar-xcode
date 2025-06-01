@@ -5,12 +5,14 @@ import CoreData
 struct BullyCarApp: App {
     let persistenceController = PersistenceController.shared
     @StateObject private var themeManager = ThemeManager()
+    @StateObject private var lifecycleManager = AppLifecycleManager()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(themeManager)
+                .environmentObject(lifecycleManager)
                 .preferredColorScheme(themeManager.colorScheme)
                 .environment(\.locale, Locale(identifier: "it_IT")) // Forza italiano globalmente
                 .onAppear {

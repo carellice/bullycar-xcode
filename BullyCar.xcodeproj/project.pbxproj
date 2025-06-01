@@ -449,6 +449,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BullyCar/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "BullyCar utilizza la fotocamera per scattare foto delle tue auto";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "BullyCar utilizza Face ID per proteggere i tuoi dati automobilistici";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "BullyCar salva le foto dei documenti nella tua libreria";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BullyCar accede alla libreria foto per selezionare immagini delle tue auto";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -482,6 +483,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BullyCar/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "BullyCar utilizza la fotocamera per scattare foto delle tue auto";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "BullyCar utilizza Face ID per proteggere i tuoi dati automobilistici";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "BullyCar salva le foto dei documenti nella tua libreria";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BullyCar accede alla libreria foto per selezionare immagini delle tue auto";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

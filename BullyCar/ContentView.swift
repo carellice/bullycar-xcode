@@ -1,9 +1,12 @@
 import SwiftUI
 import CoreData
+import LocalAuthentication
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @AppStorage("biometricAuthEnabled") private var biometricAuthEnabled = false
+    @StateObject private var authManager = BiometricAuthManager.shared
     @State private var showingSplash = true
     
     var body: some View {
@@ -16,6 +19,12 @@ struct ContentView: View {
                     .transition(.asymmetric(
                         insertion: .move(edge: .trailing).combined(with: .opacity),
                         removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
+            } else if biometricAuthEnabled && !authManager.isAuthenticated {
+                BiometricAuthView()
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal: .move(edge: .bottom).combined(with: .opacity)
                     ))
             } else {
                 HomeView()

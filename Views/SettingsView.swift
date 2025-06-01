@@ -8,6 +8,7 @@ struct SettingsView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @AppStorage("enableNotifications") private var enableNotifications = true
     @AppStorage("reminderDays") private var reminderDays = 7
+    @AppStorage("biometricAuthEnabled") private var biometricAuthEnabled = false
     @AppStorage("lastExportDate") private var lastExportDate: Double = 0
     @AppStorage("lastImportDate") private var lastImportDate: Double = 0
     @AppStorage("lastDataModification") private var lastDataModification: Double = 0
@@ -15,7 +16,8 @@ struct SettingsView: View {
     @State private var showingExportSheet = false
     @State private var showingImportSheet = false
     @State private var refreshID = UUID()
-    @State private var showingAutomaticThemeAlert = false // Alert per tema automatico
+    @State private var showingAutomaticThemeAlert = false
+    @StateObject private var authManager = BiometricAuthManager.shared
     
     var body: some View {
         NavigationView {
@@ -74,6 +76,47 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.leading, 32)
+                }
+                
+                // Sezione sicurezza
+                Section(header: Text("Sicurezza")) {
+                    HStack {
+                        Image(systemName: authManager.biometricIcon())
+                            .foregroundColor(.green)
+                            .frame(width: 24, height: 24)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Accesso con \(authManager.biometricTypeDescription())")
+                                .font(.body)
+                            
+                            if authManager.isBiometricAvailable() {
+                                Text("Proteggi i tuoi dati con l'autenticazione biometrica")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text("Non disponibile su questo dispositivo")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: $biometricAuthEnabled)
+                            .disabled(!authManager.isBiometricAvailable())
+                    }
+                    
+                    if biometricAuthEnabled && authManager.isBiometricAvailable() {
+                        HStack {
+                            Image(systemName: "checkmark.shield")
+                                .foregroundColor(.green)
+                                .font(.caption)
+                            
+                            Text("L'app si bloccherà automaticamente e richiederà l'autenticazione all'apertura")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 
                 // Sezione notifiche
@@ -185,9 +228,8 @@ struct SettingsView: View {
                     }
                 }
             }
-            .id("\(refreshID)_\(themeManager.themeMode.rawValue)") // Usa il tema come parte dell'ID
+            .id(refreshID)
         }
-        .id(themeManager.themeMode.rawValue) // NavigationView si ricrea quando cambia il tema
         .preferredColorScheme(themeManager.themeMode == .automatic ? nil : themeManager.colorScheme)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -236,7 +278,7 @@ struct SettingsView: View {
                 viewContext.delete(car)
             }
             
-            try viewContext.save()
+            try DataModificationTracker.saveContext(viewContext)
             viewContext.reset()
             
             // Notifica eliminazione dati PRIMA di chiudere
@@ -598,7 +640,7 @@ struct DocumentImporter: View {
                 viewContext.delete(car)
             }
             
-            try viewContext.save()
+            try DataModificationTracker.saveContext(viewContext)
             viewContext.reset()
             print("✅ Dati locali eliminati")
         } catch {
