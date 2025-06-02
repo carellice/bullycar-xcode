@@ -276,7 +276,7 @@ struct MaintenanceTabView: View {
         
         // Filtro per tipo
         if selectedFilter != .all {
-            filtered = filtered.filter { maintenance in
+            filtered = filtered.filter { (maintenance: Maintenance) -> Bool in
                 if selectedFilter == .custom {
                     return maintenance.type == "custom"
                 } else {
@@ -308,7 +308,7 @@ struct MaintenanceTabView: View {
     }
     
     var availableYears: [Int] {
-        let years = Set(car.maintenanceArray.compactMap { maintenance -> Int? in
+        let years = Set(car.maintenanceArray.compactMap { (maintenance: Maintenance) -> Int? in
             guard let date = maintenance.date else { return nil }
             return Calendar.current.component(.year, from: date)
         })
@@ -331,7 +331,9 @@ struct MaintenanceTabView: View {
                     filteredEmptyStateView
                 } else {
                     // Stato vuoto normale
-                    normalEmptyStateView
+                    EnhancedMaintenanceEmptyView(onAddMaintenance: {
+                        showingAddMaintenance = true
+                    })
                 }
             } else {
                 // Lista con risultati
@@ -424,7 +426,7 @@ struct MaintenanceTabView: View {
             }
         }
         .padding(.vertical, 12)
-        .background(Color(UIColor.systemGroupedBackground))
+        .background(Color.clear)
     }
     
     // MARK: - Active Filters Indicators
@@ -511,23 +513,6 @@ struct MaintenanceTabView: View {
     }
     
     // MARK: - Empty States
-    private var normalEmptyStateView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "wrench.and.screwdriver")
-                .font(.system(size: 40))
-                .foregroundColor(.gray)
-            
-            Text("Nessun intervento registrato")
-                .foregroundColor(.secondary)
-            
-            Button(action: { showingAddMaintenance = true }) {
-                Label("Aggiungi intervento", systemImage: "plus.circle.fill")
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .padding(.vertical, 40)
-    }
-    
     private var filteredEmptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "magnifyingglass")
@@ -582,6 +567,858 @@ struct MaintenanceTabView: View {
         } catch {
             print("Errore eliminazione intervento: \(error)")
         }
+    }
+}
+
+// MARK: - Enhanced MaintenanceRowView
+struct MaintenanceRowView: View {
+    let maintenance: Maintenance
+    let onDelete: () -> Void
+    @State private var showingEditMaintenance = false
+    @State private var isPressed = false
+    
+    var maintenanceTypeName: String {
+        switch maintenance.type {
+        case "tagliando": return "Tagliando"
+        case "revisione": return "Revisione"
+        case "bollo": return "Bollo"
+        case "assicurazione": return "Assicurazione"
+        case "gomme": return "Cambio gomme"
+        case "custom": return maintenance.customType ?? "Personalizzato"
+        default: return maintenance.type ?? ""
+        }
+    }
+    
+    var maintenanceIcon: String {
+        switch maintenance.type {
+        case "tagliando": return "wrench.and.screwdriver.fill"
+        case "revisione": return "checkmark.shield.fill"
+        case "bollo": return "doc.text.fill"
+        case "assicurazione": return "shield.lefthalf.filled"
+        case "gomme": return "circle.fill"
+        case "custom": return "gear.badge"
+        default: return "wrench.fill"
+        }
+    }
+    
+    var maintenanceColor: Color {
+        switch maintenance.type {
+        case "tagliando": return .orange
+        case "revisione": return .green
+        case "bollo": return .red
+        case "assicurazione": return .purple
+        case "gomme": return .brown
+        case "custom": return .blue
+        default: return .gray
+        }
+    }
+    
+    var formattedDate: String {
+        guard let date = maintenance.date else { return "" }
+        
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "it_IT")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        
+        return formatter.string(from: date)
+    }
+    
+    var body: some View {
+        Button(action: { showingEditMaintenance = true }) {
+            HStack(spacing: 16) {
+                // Icona con colore del tipo
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            LinearGradient(
+                                colors: [maintenanceColor, maintenanceColor.opacity(0.7)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 50, height: 50)
+                        .shadow(color: maintenanceColor.opacity(0.3), radius: 4, x: 0, y: 2)
+                    
+                    Image(systemName: maintenanceIcon)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(.white)
+                }
+                
+                // Contenuto principale
+                VStack(alignment: .leading, spacing: 6) {
+                    // Prima riga: tipo e data
+                    HStack {
+                        Text(maintenanceTypeName)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                        Text(formattedDate)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(UIColor.tertiarySystemFill))
+                            )
+                    }
+                    
+                    // Seconda riga: costo e chilometraggio
+                    HStack(spacing: 12) {
+                        // Costo - versione compatta
+                        HStack(spacing: 3) {
+                            Image(systemName: "eurosign.circle.fill")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                            
+                            Text("\(maintenance.cost, specifier: "%.0f")")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.green)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.green.opacity(0.1))
+                        )
+                        
+                        // Chilometraggio - versione compatta
+                        HStack(spacing: 3) {
+                            Image(systemName: "speedometer")
+                                .font(.caption2)
+                                .foregroundColor(.blue)
+                            
+                            Text(formatMileageCompact(maintenance.mileage))
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.blue)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.blue.opacity(0.1))
+                        )
+                        
+                        Spacer()
+                    }
+                    
+                    // Note (se presenti)
+                    if let notes = maintenance.notes, !notes.isEmpty {
+                        HStack(spacing: 6) {
+                            Image(systemName: "note.text")
+                                .font(.caption2)
+                                .foregroundColor(.purple)
+                            
+                            Text(notes)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                        }
+                        .padding(.top, 2)
+                    }
+                }
+                
+                // Menu azioni
+                Menu {
+                    Button(action: { showingEditMaintenance = true }) {
+                        Label("Modifica", systemImage: "pencil")
+                    }
+                    
+                    Button(role: .destructive, action: onDelete) {
+                        Label("Elimina", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.title3)
+                        .foregroundColor(.secondary)
+                        .frame(width: 30, height: 30)
+                        .background(
+                            Circle()
+                                .fill(Color(UIColor.tertiarySystemFill))
+                        )
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(UIColor.secondarySystemGroupedBackground))
+                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(maintenanceColor.opacity(0.2), lineWidth: 1)
+            )
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPressed)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onLongPressGesture(minimumDuration: 0) {
+            // Gestisce l'animazione di pressione
+        } onPressingChanged: { pressing in
+            isPressed = pressing
+        }
+        .sheet(isPresented: $showingEditMaintenance) {
+            if let car = maintenance.car {
+                AddMaintenanceView(car: car, maintenanceToEdit: maintenance)
+            }
+        }
+    }
+    
+    private func formatMileageCompact(_ mileage: Int32) -> String {
+        if mileage >= 1000 {
+            let km = Double(mileage) / 1000.0
+            
+            // Se è un numero intero di migliaia, non mostrare decimali
+            if km.truncatingRemainder(dividingBy: 1) == 0 {
+                return String(format: "%.0fK km", km)
+            } else {
+                return String(format: "%.1fK km", km)
+            }
+        } else {
+            return "\(mileage) km"
+        }
+    }
+}
+
+// MARK: - Enhanced Empty State Views
+struct EnhancedMaintenanceEmptyView: View {
+    let onAddMaintenance: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            // Icona animata
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.orange.opacity(0.2), Color.orange.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 100, height: 100)
+                
+                Image(systemName: "wrench.and.screwdriver")
+                    .font(.system(size: 40, weight: .light))
+                    .foregroundColor(.orange)
+            }
+            
+            VStack(spacing: 12) {
+                Text("Nessun intervento registrato")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                
+                Text("Inizia a tenere traccia delle manutenzioni della tua auto per non perdere mai un tagliando o una revisione")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+            }
+            
+            Button(action: onAddMaintenance) {
+                HStack(spacing: 10) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                    
+                    Text("Aggiungi Primo Intervento")
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 25)
+                        .fill(
+                            LinearGradient(
+                                colors: [.orange, .orange.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .shadow(color: Color.orange.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+            }
+        }
+        .padding(.vertical, 60)
+    }
+}
+
+struct DocumentsTabView: View {
+    @ObservedObject var car: Car
+    @State private var showingDocumentPicker = false
+    @State private var showingImagePicker = false
+    @State private var imageSourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var showingActionSheet = false
+    @State private var showingNameDialog = false
+    @State private var pendingDocumentData: (data: Data, type: String, originalName: String)?
+    @State private var documentName = ""
+    @State private var searchText = ""
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    var documents: [Document] {
+        let set = car.documents as? Set<Document> ?? []
+        return set.sorted {
+            ($0.dateAdded ?? Date.distantPast) > ($1.dateAdded ?? Date.distantPast)
+        }
+    }
+    
+    var filteredDocuments: [Document] {
+        if searchText.isEmpty {
+            return documents
+        } else {
+            return documents.filter { document in
+                let searchLower = searchText.lowercased()
+                let nameMatch = document.name?.lowercased().contains(searchLower) ?? false
+                let typeMatch = document.type?.lowercased().contains(searchLower) ?? false
+                return nameMatch || typeMatch
+            }
+        }
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header con ricerca
+            documentHeaderView
+            
+            if documents.isEmpty {
+                EnhancedDocumentEmptyView(onAddDocument: {
+                    showingActionSheet = true
+                })
+            } else {
+                if filteredDocuments.isEmpty && !searchText.isEmpty {
+                    // Stato vuoto per ricerca senza risultati
+                    searchEmptyStateView
+                } else {
+                    // Lista documenti filtrati
+                    documentListView
+                }
+            }
+        }
+        .actionSheet(isPresented: $showingActionSheet) {
+            ActionSheet(
+                title: Text("Aggiungi documento"),
+                buttons: [
+                    .default(Text("Scatta foto")) {
+                        imageSourceType = .camera
+                        showingImagePicker = true
+                    },
+                    .default(Text("Scegli dalla libreria")) {
+                        imageSourceType = .photoLibrary
+                        showingImagePicker = true
+                    },
+                    .default(Text("Importa PDF")) {
+                        showingDocumentPicker = true
+                    },
+                    .cancel()
+                ]
+            )
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(image: .constant(nil), sourceType: imageSourceType) { image in
+                if let image = image {
+                    handleImageSelection(image)
+                }
+            }
+        }
+        .sheet(isPresented: $showingDocumentPicker) {
+            DocumentPicker { url in
+                handleDocumentSelection(url)
+            }
+        }
+        .alert("Nome documento", isPresented: $showingNameDialog) {
+            TextField("Nome documento", text: $documentName)
+                .textInputAutocapitalization(.words)
+            
+            Button("Annulla", role: .cancel) {
+                pendingDocumentData = nil
+                documentName = ""
+            }
+            
+            Button("Salva") {
+                saveDocumentWithName()
+            }
+            .disabled(documentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            
+        } message: {
+            Text("Inserisci un nome per il documento")
+        }
+    }
+    
+    // MARK: - Header con ricerca
+    private var documentHeaderView: some View {
+        VStack(spacing: 12) {
+            // Prima riga: titolo e bottone aggiungi
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Documenti")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    
+                    if !searchText.isEmpty {
+                        Text("\(filteredDocuments.count) di \(documents.count) documenti")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("\(documents.count) documenti totali")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                Button(action: { showingActionSheet = true }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding(.horizontal)
+            
+            // Seconda riga: campo di ricerca (solo se ci sono documenti)
+            if !documents.isEmpty {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    
+                    TextField("Cerca documenti...", text: $searchText)
+                        .textFieldStyle(PlainTextFieldStyle())
+                    
+                    if !searchText.isEmpty {
+                        Button(action: {
+                            searchText = ""
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(UIColor.systemGray6))
+                )
+                .padding(.horizontal)
+            }
+        }
+        .padding(.vertical, 12)
+        .background(Color.clear)
+    }
+    
+    // MARK: - Lista documenti
+    private var documentListView: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(filteredDocuments) { document in
+                    DocumentRowView(document: document)
+                        .padding(.horizontal)
+                }
+            }
+            .padding(.vertical)
+        }
+    }
+    
+    // MARK: - Stato vuoto per ricerca
+    private var searchEmptyStateView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 50))
+                .foregroundColor(.gray)
+            
+            Text("Nessun risultato")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            
+            Text("Non ci sono documenti che corrispondono a '\(searchText)'")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            Button("Cancella ricerca") {
+                searchText = ""
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(.vertical, 40)
+    }
+    
+    private func handleImageSelection(_ image: UIImage) {
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else { return }
+        
+        let defaultName = "Foto_\(Date().formatted(date: .abbreviated, time: .omitted))"
+        pendingDocumentData = (data: imageData, type: "image/jpeg", originalName: defaultName)
+        documentName = defaultName
+        showingNameDialog = true
+    }
+    
+    private func handleDocumentSelection(_ url: URL) {
+        do {
+            let data = try Data(contentsOf: url)
+            let fileName = url.deletingPathExtension().lastPathComponent
+            let fileType = url.pathExtension == "pdf" ? "application/pdf" : "application/octet-stream"
+            
+            pendingDocumentData = (data: data, type: fileType, originalName: fileName)
+            documentName = fileName
+            showingNameDialog = true
+        } catch {
+            print("Errore lettura documento: \(error)")
+        }
+    }
+    
+    private func saveDocumentWithName() {
+        guard let documentData = pendingDocumentData else { return }
+        
+        let document = Document(context: viewContext)
+        document.id = UUID()
+        document.name = documentName.trimmingCharacters(in: .whitespacesAndNewlines)
+        document.type = documentData.type
+        document.size = Int64(documentData.data.count)
+        document.data = documentData.data
+        document.dateAdded = Date()
+        document.car = car
+        
+        do {
+            try DataModificationTracker.saveContext(viewContext)
+            print("✅ Documento salvato con nome: \(document.name ?? "")")
+        } catch {
+            print("❌ Errore salvataggio documento: \(error)")
+        }
+        
+        // Reset
+        pendingDocumentData = nil
+        documentName = ""
+    }
+}
+
+// MARK: - Enhanced DocumentRowView
+struct DocumentRowView: View {
+    let document: Document
+    @State private var showingDeleteAlert = false
+    @State private var showingDocument = false
+    @State private var showingRenameDialog = false
+    @State private var newDocumentName = ""
+    @State private var isPressed = false
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    var fileIcon: String {
+        if document.type?.contains("image") == true {
+            return "photo.fill"
+        } else if document.type == "application/pdf" {
+            return "doc.text.fill"
+        } else {
+            return "doc.fill"
+        }
+    }
+    
+    var fileColor: Color {
+        if document.type?.contains("image") == true {
+            return .blue
+        } else if document.type == "application/pdf" {
+            return .red
+        } else {
+            return .orange
+        }
+    }
+    
+    var fileSizeText: String {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: document.size)
+    }
+    
+    var body: some View {
+        Button(action: { showingDocument = true }) {
+            HStack(spacing: 16) {
+                // Icona file con preview
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            LinearGradient(
+                                colors: [fileColor, fileColor.opacity(0.7)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 50, height: 50)
+                        .shadow(color: fileColor.opacity(0.3), radius: 4, x: 0, y: 2)
+                    
+                    // Se è un'immagine, mostra preview
+                    if document.type?.contains("image") == true,
+                       let imageData = document.data,
+                       let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 50, height: 50)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    } else {
+                        Image(systemName: fileIcon)
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.white)
+                    }
+                }
+                
+                // Contenuto principale
+                VStack(alignment: .leading, spacing: 6) {
+                    // Nome documento
+                    Text(document.name ?? "Documento")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                        .lineLimit(2)
+                    
+                    // Info riga
+                    HStack(spacing: 12) {
+                        // Dimensione file
+                        HStack(spacing: 4) {
+                            Image(systemName: "internaldrive")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                            
+                            Text(fileSizeText)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.blue)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.blue.opacity(0.1))
+                        )
+                        
+                        // Data aggiunta
+                        HStack(spacing: 4) {
+                            Image(systemName: "calendar")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                            
+                            Text(formatDate(document.dateAdded))
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.green)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.green.opacity(0.1))
+                        )
+                        
+                        Spacer()
+                    }
+                    
+                    // Tipo file
+                    if let type = document.type {
+                        Text(getFileTypeDescription(type))
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .foregroundColor(fileColor)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(fileColor.opacity(0.1))
+                            )
+                    }
+                }
+                
+                // Menu azioni
+                Menu {
+                    Button(action: {
+                        newDocumentName = document.name ?? ""
+                        showingRenameDialog = true
+                    }) {
+                        Label("Rinomina", systemImage: "pencil")
+                    }
+                    
+                    Divider()
+                    
+                    Button(role: .destructive, action: { showingDeleteAlert = true }) {
+                        Label("Elimina", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.title3)
+                        .foregroundColor(.secondary)
+                        .frame(width: 30, height: 30)
+                        .background(
+                            Circle()
+                                .fill(Color(UIColor.tertiarySystemFill))
+                        )
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(UIColor.secondarySystemGroupedBackground))
+                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(fileColor.opacity(0.2), lineWidth: 1)
+            )
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPressed)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onLongPressGesture(minimumDuration: 0) {
+            // Gestisce l'animazione di pressione
+        } onPressingChanged: { pressing in
+            isPressed = pressing
+        }
+        .alert("Elimina documento", isPresented: $showingDeleteAlert) {
+            Button("Annulla", role: .cancel) { }
+            Button("Elimina", role: .destructive) {
+                deleteDocument()
+            }
+        } message: {
+            Text("Sei sicuro di voler eliminare questo documento?")
+        }
+        .alert("Rinomina documento", isPresented: $showingRenameDialog) {
+            TextField("Nome documento", text: $newDocumentName)
+                .textInputAutocapitalization(.words)
+            
+            Button("Annulla", role: .cancel) {
+                newDocumentName = ""
+            }
+            
+            Button("Salva") {
+                renameDocument()
+            }
+            .disabled(newDocumentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            
+        } message: {
+            Text("Inserisci il nuovo nome per il documento")
+        }
+        .sheet(isPresented: $showingDocument) {
+            DocumentViewerView(document: document)
+        }
+    }
+    
+    private func getFileTypeDescription(_ type: String) -> String {
+        if type.contains("image") {
+            return "Immagine"
+        } else if type == "application/pdf" {
+            return "PDF"
+        } else {
+            return "Documento"
+        }
+    }
+    
+    private func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "" }
+        
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "it_IT")
+        formatter.dateStyle = .short
+        formatter.timeStyle = .none
+        
+        return formatter.string(from: date)
+    }
+    
+    private func deleteDocument() {
+        viewContext.delete(document)
+        
+        do {
+            try DataModificationTracker.saveContext(viewContext)
+            print("✅ Documento eliminato")
+        } catch {
+            print("❌ Errore eliminazione documento: \(error)")
+        }
+    }
+    
+    private func renameDocument() {
+        let trimmedName = newDocumentName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        
+        document.name = trimmedName
+        
+        do {
+            try DataModificationTracker.saveContext(viewContext)
+            print("✅ Documento rinominato in: \(trimmedName)")
+        } catch {
+            print("❌ Errore rinomina documento: \(error)")
+        }
+        
+        newDocumentName = ""
+    }
+}
+
+// MARK: - Enhanced Document Empty State
+struct EnhancedDocumentEmptyView: View {
+    let onAddDocument: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            // Icona animata
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.blue.opacity(0.2), Color.blue.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 100, height: 100)
+                
+                Image(systemName: "doc.text")
+                    .font(.system(size: 40, weight: .light))
+                    .foregroundColor(.blue)
+            }
+            
+            VStack(spacing: 12) {
+                Text("Nessun documento salvato")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                
+                Text("Salva foto di documenti importanti come libretto, assicurazione, bollo e certificati per averli sempre a portata di mano")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+            }
+            
+            Button(action: onAddDocument) {
+                HStack(spacing: 10) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                    
+                    Text("Aggiungi Primo Documento")
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 25)
+                        .fill(
+                            LinearGradient(
+                                colors: [.blue, .blue.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+            }
+        }
+        .padding(.vertical, 60)
     }
 }
 
@@ -730,518 +1567,6 @@ struct MaintenanceFiltersSheet: View {
                 }
             }
         }
-    }
-}
-
-struct MaintenanceRowView: View {
-    let maintenance: Maintenance
-    let onDelete: () -> Void
-    @State private var showingEditMaintenance = false
-    
-    var maintenanceTypeName: String {
-        switch maintenance.type {
-        case "tagliando": return "Tagliando"
-        case "revisione": return "Revisione"
-        case "bollo": return "Bollo"
-        case "assicurazione": return "Assicurazione"
-        case "gomme": return "Cambio gomme"
-        case "custom": return maintenance.customType ?? "Personalizzato"
-        default: return maintenance.type ?? ""
-        }
-    }
-    
-    var formattedDate: String {
-        guard let date = maintenance.date else { return "" }
-        
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "it_IT")
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        
-        return formatter.string(from: date)
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(maintenanceTypeName)
-                        .font(.headline)
-                    
-                    Text(formattedDate)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("€ \(maintenance.cost, specifier: "%.2f")")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.blue)
-                    
-                    Text("\(maintenance.mileage) km")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Menu {
-                    Button(action: { showingEditMaintenance = true }) {
-                        Label("Modifica", systemImage: "pencil")
-                    }
-                    
-                    Button(role: .destructive, action: onDelete) {
-                        Label("Elimina", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.title3)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            if let notes = maintenance.notes, !notes.isEmpty {
-                Text(notes)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-            }
-        }
-        .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(10)
-        .sheet(isPresented: $showingEditMaintenance) {
-            if let car = maintenance.car {
-                AddMaintenanceView(car: car, maintenanceToEdit: maintenance)
-            }
-        }
-    }
-}
-
-struct DocumentsTabView: View {
-    @ObservedObject var car: Car
-    @State private var showingDocumentPicker = false
-    @State private var showingImagePicker = false
-    @State private var imageSourceType: UIImagePickerController.SourceType = .photoLibrary
-    @State private var showingActionSheet = false
-    @State private var showingNameDialog = false
-    @State private var pendingDocumentData: (data: Data, type: String, originalName: String)?
-    @State private var documentName = ""
-    @State private var searchText = "" // ✅ Nuovo stato per la ricerca
-    @Environment(\.managedObjectContext) private var viewContext
-    
-    var documents: [Document] {
-        let set = car.documents as? Set<Document> ?? []
-        return set.sorted {
-            ($0.dateAdded ?? Date.distantPast) > ($1.dateAdded ?? Date.distantPast)
-        }
-    }
-    
-    // ✅ Nuova computed property per documenti filtrati
-    var filteredDocuments: [Document] {
-        if searchText.isEmpty {
-            return documents
-        } else {
-            return documents.filter { document in
-                let searchLower = searchText.lowercased()
-                let nameMatch = document.name?.lowercased().contains(searchLower) ?? false
-                let typeMatch = document.type?.lowercased().contains(searchLower) ?? false
-                return nameMatch || typeMatch
-            }
-        }
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            // ✅ Header con ricerca
-            documentHeaderView
-            
-            if documents.isEmpty {
-                emptyStateView
-            } else {
-                if filteredDocuments.isEmpty && !searchText.isEmpty {
-                    // ✅ Stato vuoto per ricerca senza risultati
-                    searchEmptyStateView
-                } else {
-                    // ✅ Lista documenti filtrati
-                    documentListView
-                }
-            }
-        }
-        .actionSheet(isPresented: $showingActionSheet) {
-            ActionSheet(
-                title: Text("Aggiungi documento"),
-                buttons: [
-                    .default(Text("Scatta foto")) {
-                        imageSourceType = .camera
-                        showingImagePicker = true
-                    },
-                    .default(Text("Scegli dalla libreria")) {
-                        imageSourceType = .photoLibrary
-                        showingImagePicker = true
-                    },
-                    .default(Text("Importa PDF")) {
-                        showingDocumentPicker = true
-                    },
-                    .cancel()
-                ]
-            )
-        }
-        .sheet(isPresented: $showingImagePicker) {
-            ImagePicker(image: .constant(nil), sourceType: imageSourceType) { image in
-                if let image = image {
-                    handleImageSelection(image)
-                }
-            }
-        }
-        .sheet(isPresented: $showingDocumentPicker) {
-            DocumentPicker { url in
-                handleDocumentSelection(url)
-            }
-        }
-        .alert("Nome documento", isPresented: $showingNameDialog) {
-            TextField("Nome documento", text: $documentName)
-                .textInputAutocapitalization(.words)
-            
-            Button("Annulla", role: .cancel) {
-                pendingDocumentData = nil
-                documentName = ""
-            }
-            
-            Button("Salva") {
-                saveDocumentWithName()
-            }
-            .disabled(documentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            
-        } message: {
-            Text("Inserisci un nome per il documento")
-        }
-    }
-    
-    // ✅ MARK: - Header con ricerca
-    private var documentHeaderView: some View {
-        VStack(spacing: 12) {
-            // Prima riga: titolo e bottone aggiungi
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Documenti")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                    
-                    if !searchText.isEmpty {
-                        Text("\(filteredDocuments.count) di \(documents.count) documenti")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("\(documents.count) documenti totali")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Spacer()
-                
-                Button(action: { showingActionSheet = true }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                }
-            }
-            .padding(.horizontal)
-            
-            // Seconda riga: campo di ricerca (solo se ci sono documenti)
-            if !documents.isEmpty {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                    
-                    TextField("Cerca documenti...", text: $searchText)
-                        .textFieldStyle(PlainTextFieldStyle())
-                    
-                    if !searchText.isEmpty {
-                        Button(action: {
-                            searchText = ""
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(UIColor.systemGray6))
-                )
-                .padding(.horizontal)
-            }
-        }
-        .padding(.vertical, 12)
-        .background(Color(UIColor.systemGroupedBackground))
-    }
-    
-    // ✅ MARK: - Lista documenti
-    private var documentListView: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(filteredDocuments) { document in
-                    DocumentRowView(document: document)
-                        .padding(.horizontal)
-                }
-            }
-            .padding(.vertical)
-        }
-    }
-    
-    // ✅ MARK: - Stato vuoto normale
-    private var emptyStateView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "doc.text")
-                .font(.system(size: 60))
-                .foregroundColor(.gray)
-            
-            Text("Nessun documento salvato")
-                .font(.headline)
-                .foregroundColor(.secondary)
-            
-            Text("Aggiungi foto di documenti importanti come libretto, assicurazione, bollo e altro")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            Button(action: { showingActionSheet = true }) {
-                Label("Aggiungi documento", systemImage: "plus.circle.fill")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(12)
-            }
-        }
-        .padding(.vertical, 60)
-    }
-    
-    // ✅ MARK: - Stato vuoto per ricerca
-    private var searchEmptyStateView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 50))
-                .foregroundColor(.gray)
-            
-            Text("Nessun risultato")
-                .font(.headline)
-                .foregroundColor(.secondary)
-            
-            Text("Non ci sono documenti che corrispondono a '\(searchText)'")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            Button("Cancella ricerca") {
-                searchText = ""
-            }
-            .buttonStyle(.bordered)
-        }
-        .padding(.vertical, 40)
-    }
-    
-    // ✅ Le altre funzioni rimangono uguali...
-    private func handleImageSelection(_ image: UIImage) {
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else { return }
-        
-        let defaultName = "Foto_\(Date().formatted(date: .abbreviated, time: .omitted))"
-        pendingDocumentData = (data: imageData, type: "image/jpeg", originalName: defaultName)
-        documentName = defaultName
-        showingNameDialog = true
-    }
-    
-    private func handleDocumentSelection(_ url: URL) {
-        do {
-            let data = try Data(contentsOf: url)
-            let fileName = url.deletingPathExtension().lastPathComponent
-            let fileType = url.pathExtension == "pdf" ? "application/pdf" : "application/octet-stream"
-            
-            pendingDocumentData = (data: data, type: fileType, originalName: fileName)
-            documentName = fileName
-            showingNameDialog = true
-        } catch {
-            print("Errore lettura documento: \(error)")
-        }
-    }
-    
-    private func saveDocumentWithName() {
-        guard let documentData = pendingDocumentData else { return }
-        
-        let document = Document(context: viewContext)
-        document.id = UUID()
-        document.name = documentName.trimmingCharacters(in: .whitespacesAndNewlines)
-        document.type = documentData.type
-        document.size = Int64(documentData.data.count)
-        document.data = documentData.data
-        document.dateAdded = Date()
-        document.car = car
-        
-        do {
-            try DataModificationTracker.saveContext(viewContext)
-            print("✅ Documento salvato con nome: \(document.name ?? "")")
-        } catch {
-            print("❌ Errore salvataggio documento: \(error)")
-        }
-        
-        // Reset
-        pendingDocumentData = nil
-        documentName = ""
-    }
-}
-
-struct DocumentRowView: View {
-    let document: Document
-    @State private var showingDeleteAlert = false
-    @State private var showingDocument = false
-    @State private var showingRenameDialog = false
-    @State private var newDocumentName = ""
-    @Environment(\.managedObjectContext) private var viewContext
-    
-    var fileIcon: String {
-        if document.type?.contains("image") == true {
-            return "photo"
-        } else if document.type == "application/pdf" {
-            return "doc.text"
-        } else {
-            return "doc"
-        }
-    }
-    
-    var fileSizeText: String {
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: document.size)
-    }
-    
-    var body: some View {
-        HStack {
-            Image(systemName: fileIcon)
-                .font(.title2)
-                .foregroundColor(.blue)
-                .frame(width: 40, height: 40)
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(8)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(document.name ?? "Documento")
-                    .font(.headline)
-                    .lineLimit(1)
-                
-                HStack {
-                    Text(fileSizeText)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Text("•")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Text(formatDate(document.dateAdded))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Spacer()
-            
-            Menu {
-                Button(action: {
-                    newDocumentName = document.name ?? ""
-                    showingRenameDialog = true
-                }) {
-                    Label("Rinomina", systemImage: "pencil")
-                }
-                
-                Divider()
-                
-                Button(role: .destructive, action: { showingDeleteAlert = true }) {
-                    Label("Elimina", systemImage: "trash")
-                }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .font(.title3)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(10)
-        .onTapGesture {
-            showingDocument = true
-        }
-        .alert("Elimina documento", isPresented: $showingDeleteAlert) {
-            Button("Annulla", role: .cancel) { }
-            Button("Elimina", role: .destructive) {
-                deleteDocument()
-            }
-        } message: {
-            Text("Sei sicuro di voler eliminare questo documento?")
-        }
-        .alert("Rinomina documento", isPresented: $showingRenameDialog) {
-            TextField("Nome documento", text: $newDocumentName)
-                .textInputAutocapitalization(.words)
-            
-            Button("Annulla", role: .cancel) {
-                newDocumentName = ""
-            }
-            
-            Button("Salva") {
-                renameDocument()
-            }
-            .disabled(newDocumentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            
-        } message: {
-            Text("Inserisci il nuovo nome per il documento")
-        }
-        .sheet(isPresented: $showingDocument) {
-            DocumentViewerView(document: document)
-        }
-    }
-    
-    private func formatDate(_ date: Date?) -> String {
-        guard let date = date else { return "" }
-        
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "it_IT")
-        formatter.dateStyle = .short
-        formatter.timeStyle = .none
-        
-        return formatter.string(from: date)
-    }
-    
-    private func deleteDocument() {
-        viewContext.delete(document)
-        
-        do {
-            try DataModificationTracker.saveContext(viewContext)
-            print("✅ Documento eliminato")
-        } catch {
-            print("❌ Errore eliminazione documento: \(error)")
-        }
-    }
-    
-    private func renameDocument() {
-        let trimmedName = newDocumentName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else { return }
-        
-        document.name = trimmedName
-        
-        do {
-            try DataModificationTracker.saveContext(viewContext)
-            print("✅ Documento rinominato in: \(trimmedName)")
-        } catch {
-            print("❌ Errore rinomina documento: \(error)")
-        }
-        
-        newDocumentName = ""
     }
 }
 
