@@ -388,7 +388,7 @@ struct CarCardView: View {
                     
                     // Targa europea realistica - dimensioni contenute
                     HStack(spacing: 0) {
-                        // Banda blu laterale sinistra con stelle europee
+                        // Banda blu laterale SINISTRA con stelle europee
                         ZStack {
                             Rectangle()
                                 .fill(Color.blue)
@@ -417,6 +417,28 @@ struct CarCardView: View {
                             .padding(.horizontal, 6)
                             .padding(.vertical, 4)
                             .background(Color.white)
+                        
+                        // ✅ AGGIUNTO: Banda blu laterale DESTRA con decorazione
+                        ZStack {
+                            Rectangle()
+                                .fill(Color.blue)
+                                .frame(width: 14)
+                            
+                            // Decorazione semplice sulla destra (opzionale)
+                            VStack(spacing: 2) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 2))
+                                    .foregroundColor(.yellow)
+                                
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 2))
+                                    .foregroundColor(.yellow)
+                                
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 2))
+                                    .foregroundColor(.yellow)
+                            }
+                        }
                     }
                     .frame(height: 24)
                     .overlay(
