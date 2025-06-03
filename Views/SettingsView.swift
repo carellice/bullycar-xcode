@@ -132,6 +132,11 @@ struct SettingsView: View {
                 
                 // Sezione backup locale
                 Section(header: Text("Backup Locale")) {
+                    // ✅ AGGIUNTO: Badge di stato del backup
+                    BackupStatusBadge()
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                    
                     Button(action: { showingExportSheet = true }) {
                         Label("Esporta dati", systemImage: "square.and.arrow.up")
                     }
@@ -144,7 +149,7 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    // Info ultima esportazione
+                    // Info dettagliate (opzionale, puoi mantenerle o rimuoverle)
                     if lastExportDate > 0 {
                         HStack {
                             Text("Ultima esportazione")
@@ -157,7 +162,6 @@ struct SettingsView: View {
                         }
                     }
                     
-                    // Info ultima importazione
                     if lastImportDate > 0 {
                         HStack {
                             Text("Ultima importazione")
@@ -428,14 +432,17 @@ struct DocumentExporter: View {
             do {
                 exportedData = try BackupManager.exportData(from: viewContext)
                 
-                // Salva timestamp ultima esportazione
-                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastExportDate")
+                // SEMPLIFICATO: Usa il nuovo sistema
+                BackupStatusManager.shared.markBackupExported()
                 
                 isExporting = false
                 showingShareSheet = true
+                
+                print("✅ Backup esportato con successo dalle impostazioni")
             } catch {
                 isExporting = false
                 errorMessage = "Errore esportazione: \(error.localizedDescription)"
+                print("❌ Errore esportazione dalle impostazioni: \(error)")
             }
         }
     }

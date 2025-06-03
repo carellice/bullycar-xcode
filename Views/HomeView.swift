@@ -18,93 +18,101 @@ struct HomeView: View {
     @State private var homeViewKey = UUID()
     
     var body: some View {
-            NavigationView {
-                ZStack {
-                    // Background
-                    Color(UIColor.systemGroupedBackground)
-                        .ignoresSafeArea()
-                    
-                    if cars.isEmpty {
-                        ScrollView {
+        NavigationView {
+            ZStack {
+                // Background
+                Color(UIColor.systemGroupedBackground)
+                    .ignoresSafeArea()
+                
+                if cars.isEmpty {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // ✅ AGGIUNTO: Backup Status anche quando non ci sono auto
+                            BackupStatusCard()
+                            
                             EmptyStateView()
                                 .padding(.top, 100)
                         }
-                    } else {
-                        ScrollView {
-                            VStack(spacing: 24) {
-                                // Header semplificato
-                                simpleHeaderView
-                                
-                                // Layout delle auto - Una per riga
-                                LazyVStack(spacing: 20) {
-                                    ForEach(cars) { car in
-                                        CarCardView(car: car)
-                                    }
-                                }
-                                .padding(.horizontal)
-                                .id(refreshID)
-                            }
-                            .padding(.vertical)
-                        }
                     }
-                }
-                .navigationTitle("BullyCar")
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button(action: {
-                            // ✅ SEMPLIFICA:
-                            showingSettings = true
-                        }) {
-                            Image(systemName: "gear")
-                        }
-                    }
-                    
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            print("➕ Tentativo apertura AddCar")
-                            addCarViewKey = UUID()
+                } else {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // Header semplificato
+                            simpleHeaderView
                             
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                showingAddCar = true
+                            // ✅ AGGIUNTO: Backup Status Card
+                            BackupStatusCard()
+                            
+                            // Layout delle auto - Una per riga
+                            LazyVStack(spacing: 20) {
+                                ForEach(cars) { car in
+                                    CarCardView(car: car)
+                                }
                             }
-                        }) {
-                            Image(systemName: "plus")
+                            .padding(.horizontal)
+                            .id(refreshID)
                         }
-                        .disabled(showingAddCar)
+                        .padding(.vertical)
                     }
-                }
-                .sheet(isPresented: $showingAddCar) {
-                    AddCarView(onSave: {
-                        print("🚗 Auto salvata - chiusura sheet")
-                        showingAddCar = false
-                        refreshView()
-                    })
-                    .id(addCarViewKey)
-                }
-                // ✅ SEMPLIFICA le impostazioni:
-                .sheet(isPresented: $showingSettings) {
-                    SettingsView()
-                        .environmentObject(themeManager)
-                }
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CarDataChanged"))) { _ in
-                    print("📡 Ricevuta notifica CarDataChanged")
-                    refreshView()
-                }
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ImportCompleted"))) { _ in
-                    print("📡 Import completato - reset completo dell'interfaccia")
-                    performCompleteReset()
-                }
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DataDeleted"))) { _ in
-                    print("📡 Dati eliminati - reset completo dell'interfaccia")
-                    performCompleteReset()
                 }
             }
-            .id(homeViewKey)
-            .onAppear {
-                viewContext.refreshAllObjects()
+            .navigationTitle("BullyCar")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        Image(systemName: "gear")
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        print("➕ Tentativo apertura AddCar")
+                        addCarViewKey = UUID()
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            showingAddCar = true
+                        }
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                    .disabled(showingAddCar)
+                }
+            }
+            .sheet(isPresented: $showingAddCar) {
+                AddCarView(onSave: {
+                    print("🚗 Auto salvata - chiusura sheet")
+                    showingAddCar = false
+                    refreshView()
+                })
+                .id(addCarViewKey)
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+                    .environmentObject(themeManager)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CarDataChanged"))) { _ in
+                print("📡 Ricevuta notifica CarDataChanged")
+                refreshView()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ImportCompleted"))) { _ in
+                print("📡 Import completato - reset completo dell'interfaccia")
+                performCompleteReset()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DataDeleted"))) { _ in
+                print("📡 Dati eliminati - reset completo dell'interfaccia")
+                performCompleteReset()
             }
         }
+        .id(homeViewKey)
+        .onAppear {
+            viewContext.refreshAllObjects()
+            // ✅ FIX: Solo controllo iniziale dello stato, senza forzare l'alert
+            BackupStatusManager.shared.checkBackupStatus()
+        }
+    }
     
     // MARK: - Simple Header View
     private var simpleHeaderView: some View {

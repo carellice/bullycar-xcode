@@ -10,6 +10,11 @@ class DataModificationTracker {
     static func recordDataModification() {
         UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastDataModification")
         print("📝 Registrata modifica dati: \(Date().formatted(date: .abbreviated, time: .shortened))")
+        
+        // SEMPLIFICATO: Solo aggiorna lo stato, niente observer o alert automatici
+        DispatchQueue.main.async {
+            BackupStatusManager.shared.checkBackupStatus()
+        }
     }
     
     // Salva il context e registra la modifica
