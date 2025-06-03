@@ -6,6 +6,7 @@ struct CarDetailView: View {
     @State private var selectedTab = 0
     @State private var showingEditCar = false
     @State private var showingDeleteAlert = false
+    @State private var showingStatusManager = false
     @State private var showingAddMaintenance = false
     @State private var showingCopyFeedback = false
     @Environment(\.dismiss) private var dismiss
@@ -38,21 +39,56 @@ struct CarDetailView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button(action: { showingEditCar = true }) {
-                        Label("Modifica", systemImage: "pencil")
+                HStack(spacing: 8) {
+                    // Badge di status per auto non attive
+                    if car.carStatus != .active {
+                        HStack(spacing: 4) {
+                            Image(systemName: car.carStatus.icon)
+                                .font(.caption)
+                                .foregroundColor(car.carStatus.color)
+                            
+                            Text(car.carStatus.displayName)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(car.carStatus.color)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(car.carStatus.color.opacity(0.1))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(car.carStatus.color.opacity(0.3), lineWidth: 1)
+                                )
+                        )
                     }
                     
-                    Button(role: .destructive, action: { showingDeleteAlert = true }) {
-                        Label("Elimina", systemImage: "trash")
+                    Menu {
+                        Button(action: { showingEditCar = true }) {
+                            Label("Modifica", systemImage: "pencil")
+                        }
+                        
+                        Button(action: { showingStatusManager = true }) {
+                            Label("Gestisci auto", systemImage: "gear")
+                        }
+                        
+                        Divider()
+                        
+                        Button(role: .destructive, action: { showingDeleteAlert = true }) {
+                            Label("Elimina", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
                 }
             }
         }
         .sheet(isPresented: $showingEditCar) {
             AddCarView(carToEdit: car)
+        }
+        .sheet(isPresented: $showingStatusManager) {
+            CarStatusManagerView(car: car)
         }
         .sheet(isPresented: $showingAddMaintenance) {
             AddMaintenanceView(car: car)

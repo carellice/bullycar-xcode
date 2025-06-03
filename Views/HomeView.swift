@@ -194,6 +194,7 @@ struct CarCardView: View {
     @State private var showingCopyFeedback = false
     @State private var showingAddMaintenance = false
     @State private var showingAddDocument = false
+    @State private var showingStatusManager = false
     @State private var cardScale: CGFloat = 1.0
     @State private var shimmerOffset: CGFloat = -200
     
@@ -213,7 +214,10 @@ struct CarCardView: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.blue.opacity(0.1), lineWidth: 1)
+                    .stroke(
+                        car.carStatus != .active ? car.carStatus.color.opacity(0.5) : Color.blue.opacity(0.1),
+                        lineWidth: car.carStatus != .active ? 2 : 1
+                    )
             )
             .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
             .scaleEffect(cardScale)
@@ -227,6 +231,12 @@ struct CarCardView: View {
             }
             
             Divider()
+            
+            Button(action: {
+                showingStatusManager = true
+            }) {
+                Label("Gestisci auto", systemImage: "gear")
+            }
             
             Button(action: {
                 showingAddMaintenance = true
@@ -268,6 +278,9 @@ struct CarCardView: View {
         }
         .sheet(isPresented: $showingAddDocument) {
             DocumentPickerSheet(car: car)
+        }
+        .sheet(isPresented: $showingStatusManager) {
+            CarStatusManagerView(car: car)
         }
         .alert("Elimina auto", isPresented: $showingDeleteAlert) {
             Button("Annulla", role: .cancel) { }
@@ -349,8 +362,28 @@ struct CarCardView: View {
             
             // Contenuto sovrapposto
             VStack {
-                // Badge targa europea in alto a destra
+                // Header superiore con targa e badge status
                 HStack {
+                    // ✅ AGGIUNTO: Badge di status se l'auto non è attiva
+                    if car.carStatus != .active {
+                        HStack(spacing: 4) {
+                            Image(systemName: car.carStatus.icon)
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Text(car.carStatus.displayName)
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(car.carStatus.color)
+                                .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                        )
+                    }
+                    
                     Spacer()
                     
                     // Targa europea realistica - dimensioni contenute
@@ -396,7 +429,7 @@ struct CarCardView: View {
                 
                 Spacer()
                 
-                // Nome auto in basso
+                // Nome auto in basso con eventuale data di status
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(car.name ?? "")
@@ -409,6 +442,14 @@ struct CarCardView: View {
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.9))
                             .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        
+                        // ✅ AGGIUNTO: Mostra data di status se l'auto non è attiva
+                        if car.carStatus != .active, let statusDate = car.formattedStatusDate {
+                            Text("\(car.carStatus.displayName) il \(statusDate)")
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.8))
+                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        }
                     }
                     
                     Spacer()
