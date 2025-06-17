@@ -8,7 +8,7 @@ struct OnboardingView: View {
     let pages = [
         OnboardingPage(
             icon: "car.fill",
-            title: "Benvenuto in BullyCar",
+            title: "Benvenuto in Dueffe Car",
             description: "L'app completa per gestire le tue automobili. Tieni traccia di tutto in un unico posto.",
             color: .blue
         ),
@@ -57,7 +57,7 @@ struct OnboardingView: View {
                         Image(systemName: "car.fill")
                             .font(.title2)
                             .foregroundColor(.blue)
-                        Text("BullyCar")
+                        Text("Dueffe Car")
                             .font(.headline)
                             .fontWeight(.bold)
                     }

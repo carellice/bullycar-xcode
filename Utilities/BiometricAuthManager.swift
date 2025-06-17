@@ -132,13 +132,13 @@ class BiometricAuthManager: ObservableObject {
         let reason: String
         switch biometricType() {
         case .faceID:
-            reason = "Usa Face ID per accedere a BullyCar"
+            reason = "Usa Face ID per accedere a Dueffe Car"
         case .touchID:
-            reason = "Usa Touch ID per accedere a BullyCar"
+            reason = "Usa Touch ID per accedere a Dueffe Car"
         case .opticID:
-            reason = "Usa Optic ID per accedere a BullyCar"
+            reason = "Usa Optic ID per accedere a Dueffe Car"
         case .none:
-            reason = "Autenticati per accedere a BullyCar"
+            reason = "Autenticati per accedere a Dueffe Car"
         }
         
         do {
@@ -164,7 +164,7 @@ class BiometricAuthManager: ObservableObject {
     // Autentica con passcode come fallback
     func authenticateWithPasscode() async -> Result<Void, AuthError> {
         let context = LAContext()
-        let reason = "Inserisci il tuo codice per accedere a BullyCar"
+        let reason = "Inserisci il tuo codice per accedere a Dueffe Car"
         
         do {
             let success = try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)

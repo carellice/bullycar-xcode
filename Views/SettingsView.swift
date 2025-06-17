@@ -468,7 +468,7 @@ struct DocumentImporter: View {
                     .font(.title)
                     .fontWeight(.bold)
                 
-                Text("Seleziona un file di backup BullyCar (.json) per ripristinare i tuoi dati")
+                Text("Seleziona un file di backup Dueffe Car (.json) per ripristinare i tuoi dati")
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                     .padding(.horizontal)

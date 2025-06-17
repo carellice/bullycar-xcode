@@ -220,6 +220,6 @@ struct BackupManager {
         formatter.locale = Locale(identifier: "it_IT") // Usa formato italiano
         formatter.dateFormat = "dd-MM-yyyy_HH.mm" // Formato: giorno-mese-anno_ora.minuti
         let dateString = formatter.string(from: Date())
-        return "bullycar_\(dateString).json"
+        return "dueffe_car_\(dateString).json"
     }
 }

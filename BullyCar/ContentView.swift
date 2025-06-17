@@ -97,7 +97,7 @@ struct SplashView: View {
                 }
                 
                 VStack(spacing: 12) {
-                    Text("BullyCar")
+                    Text("Dueffe Car")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .opacity(opacity)

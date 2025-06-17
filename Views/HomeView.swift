@@ -56,7 +56,7 @@ struct HomeView: View {
                     }
                 }
             }
-            .navigationTitle("BullyCar")
+            .navigationTitle("Dueffe Car")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

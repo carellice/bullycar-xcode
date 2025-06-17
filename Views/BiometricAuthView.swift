@@ -38,7 +38,7 @@ struct BiometricAuthView: View {
                     }
                     
                     VStack(spacing: 8) {
-                        Text("BullyCar")
+                        Text("Dueffe Car")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
