@@ -24,18 +24,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		900EB5B52DE52C1600A7EA08 /* BullyCar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BullyCar.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		900EB5C22DE52C1700A7EA08 /* BullyCarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BullyCarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		900EB5CC2DE52C1700A7EA08 /* BullyCarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BullyCarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		900EB5B52DE52C1600A7EA08 /* Dueffe Car.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dueffe Car.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		900EB5C22DE52C1700A7EA08 /* Dueffe CarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Dueffe CarTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		900EB5CC2DE52C1700A7EA08 /* Dueffe CarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Dueffe CarUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		9014A0852DE5F9F100F227AB /* Exceptions for "BullyCar" folder in "BullyCar" target */ = {
+		9014A0852DE5F9F100F227AB /* Exceptions for "BullyCar" folder in "Dueffe Car" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 900EB5B42DE52C1600A7EA08 /* BullyCar */;
+			target = 900EB5B42DE52C1600A7EA08 /* Dueffe Car */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -43,7 +43,7 @@
 		900EB5B72DE52C1600A7EA08 /* BullyCar */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				9014A0852DE5F9F100F227AB /* Exceptions for "BullyCar" folder in "BullyCar" target */,
+				9014A0852DE5F9F100F227AB /* Exceptions for "BullyCar" folder in "Dueffe Car" target */,
 			);
 			path = BullyCar;
 			sourceTree = "<group>";
@@ -128,9 +128,9 @@
 		900EB5B62DE52C1600A7EA08 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				900EB5B52DE52C1600A7EA08 /* BullyCar.app */,
-				900EB5C22DE52C1700A7EA08 /* BullyCarTests.xctest */,
-				900EB5CC2DE52C1700A7EA08 /* BullyCarUITests.xctest */,
+				900EB5B52DE52C1600A7EA08 /* Dueffe Car.app */,
+				900EB5C22DE52C1700A7EA08 /* Dueffe CarTests.xctest */,
+				900EB5CC2DE52C1700A7EA08 /* Dueffe CarUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -138,9 +138,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		900EB5B42DE52C1600A7EA08 /* BullyCar */ = {
+		900EB5B42DE52C1600A7EA08 /* Dueffe Car */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 900EB5D62DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCar" */;
+			buildConfigurationList = 900EB5D62DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "Dueffe Car" */;
 			buildPhases = (
 				900EB5B12DE52C1600A7EA08 /* Sources */,
 				900EB5B22DE52C1600A7EA08 /* Frameworks */,
@@ -158,16 +158,16 @@
 				900EB5E22DE52C7100A7EA08 /* Utilities */,
 				900EB5E32DE52C7900A7EA08 /* Resources */,
 			);
-			name = BullyCar;
+			name = "Dueffe Car";
 			packageProductDependencies = (
 			);
 			productName = BullyCar;
-			productReference = 900EB5B52DE52C1600A7EA08 /* BullyCar.app */;
+			productReference = 900EB5B52DE52C1600A7EA08 /* Dueffe Car.app */;
 			productType = "com.apple.product-type.application";
 		};
-		900EB5C12DE52C1700A7EA08 /* BullyCarTests */ = {
+		900EB5C12DE52C1700A7EA08 /* Dueffe CarTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 900EB5D92DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCarTests" */;
+			buildConfigurationList = 900EB5D92DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "Dueffe CarTests" */;
 			buildPhases = (
 				900EB5BE2DE52C1700A7EA08 /* Sources */,
 				900EB5BF2DE52C1700A7EA08 /* Frameworks */,
@@ -181,16 +181,16 @@
 			fileSystemSynchronizedGroups = (
 				900EB5C52DE52C1700A7EA08 /* BullyCarTests */,
 			);
-			name = BullyCarTests;
+			name = "Dueffe CarTests";
 			packageProductDependencies = (
 			);
 			productName = BullyCarTests;
-			productReference = 900EB5C22DE52C1700A7EA08 /* BullyCarTests.xctest */;
+			productReference = 900EB5C22DE52C1700A7EA08 /* Dueffe CarTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		900EB5CB2DE52C1700A7EA08 /* BullyCarUITests */ = {
+		900EB5CB2DE52C1700A7EA08 /* Dueffe CarUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 900EB5DC2DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCarUITests" */;
+			buildConfigurationList = 900EB5DC2DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "Dueffe CarUITests" */;
 			buildPhases = (
 				900EB5C82DE52C1700A7EA08 /* Sources */,
 				900EB5C92DE52C1700A7EA08 /* Frameworks */,
@@ -204,11 +204,11 @@
 			fileSystemSynchronizedGroups = (
 				900EB5CF2DE52C1700A7EA08 /* BullyCarUITests */,
 			);
-			name = BullyCarUITests;
+			name = "Dueffe CarUITests";
 			packageProductDependencies = (
 			);
 			productName = BullyCarUITests;
-			productReference = 900EB5CC2DE52C1700A7EA08 /* BullyCarUITests.xctest */;
+			productReference = 900EB5CC2DE52C1700A7EA08 /* Dueffe CarUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -234,7 +234,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 900EB5B02DE52C1600A7EA08 /* Build configuration list for PBXProject "BullyCar" */;
+			buildConfigurationList = 900EB5B02DE52C1600A7EA08 /* Build configuration list for PBXProject "Dueffe Car" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -248,9 +248,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				900EB5B42DE52C1600A7EA08 /* BullyCar */,
-				900EB5C12DE52C1700A7EA08 /* BullyCarTests */,
-				900EB5CB2DE52C1700A7EA08 /* BullyCarUITests */,
+				900EB5B42DE52C1600A7EA08 /* Dueffe Car */,
+				900EB5C12DE52C1700A7EA08 /* Dueffe CarTests */,
+				900EB5CB2DE52C1700A7EA08 /* Dueffe CarUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -306,12 +306,12 @@
 /* Begin PBXTargetDependency section */
 		900EB5C42DE52C1700A7EA08 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 900EB5B42DE52C1600A7EA08 /* BullyCar */;
+			target = 900EB5B42DE52C1600A7EA08 /* Dueffe Car */;
 			targetProxy = 900EB5C32DE52C1700A7EA08 /* PBXContainerItemProxy */;
 		};
 		900EB5CE2DE52C1700A7EA08 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 900EB5B42DE52C1600A7EA08 /* BullyCar */;
+			target = 900EB5B42DE52C1600A7EA08 /* Dueffe Car */;
 			targetProxy = 900EB5CD2DE52C1700A7EA08 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -443,7 +443,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = BullyCar/BullyCar.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_TEAM = 579CS4F45Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -478,7 +478,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = BullyCar/BullyCar.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_TEAM = 579CS4F45Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -520,7 +520,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BullyCar.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BullyCar";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dueffe Car.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dueffe Car";
 			};
 			name = Debug;
 		};
@@ -538,7 +538,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BullyCar.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BullyCar";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dueffe Car.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dueffe Car";
 			};
 			name = Release;
 		};
@@ -577,7 +577,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		900EB5B02DE52C1600A7EA08 /* Build configuration list for PBXProject "BullyCar" */ = {
+		900EB5B02DE52C1600A7EA08 /* Build configuration list for PBXProject "Dueffe Car" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				900EB5D42DE52C1700A7EA08 /* Debug */,
@@ -586,7 +586,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		900EB5D62DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCar" */ = {
+		900EB5D62DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "Dueffe Car" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				900EB5D72DE52C1700A7EA08 /* Debug */,
@@ -595,7 +595,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		900EB5D92DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCarTests" */ = {
+		900EB5D92DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "Dueffe CarTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				900EB5DA2DE52C1700A7EA08 /* Debug */,
@@ -604,7 +604,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		900EB5DC2DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "BullyCarUITests" */ = {
+		900EB5DC2DE52C1700A7EA08 /* Build configuration list for PBXNativeTarget "Dueffe CarUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				900EB5DD2DE52C1700A7EA08 /* Debug */,
